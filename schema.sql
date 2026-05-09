@@ -25,3 +25,4 @@ CREATE TABLE messages (
 
 CREATE INDEX idx_sessions_token ON sessions(token);
 CREATE INDEX idx_messages_thread ON messages(username, thread, id);
+CREATE INDEX idx_messages_id ON messages(id);
