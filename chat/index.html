@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Chat</title>
+  <title>lualearn.COM</title>
   <style>
     * {
       box-sizing: border-box;
@@ -146,8 +146,17 @@
     }
 
     .chat-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       font-size: 22px;
       font-weight: 900;
+    }
+
+    .chat-title svg {
+      width: 24px;
+      height: 24px;
+      color: #6dff9c;
     }
 
     .logout {
@@ -232,6 +241,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      gap: 10px;
       transition: transform 0.22s ease, filter 0.22s ease;
     }
 
@@ -239,6 +249,11 @@
     .login:hover {
       transform: translateY(-3px) scale(1.03);
       filter: brightness(1.1);
+    }
+
+    .login svg {
+      width: 23px;
+      height: 23px;
     }
 
     .login-wrap {
@@ -308,7 +323,12 @@
     <section class="login-card">
       <h1>Login</h1>
       <p>Sign in with Discord to continue.</p>
-      <a id="loginBtn" class="login" href="#">Login with Discord</a>
+      <a id="loginBtn" class="login" href="#">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M20.317 4.369A19.791 19.791 0 0 0 15.37 2.85a13.889 13.889 0 0 0-.632 1.304 18.27 18.27 0 0 0-5.476 0A13.889 13.889 0 0 0 8.63 2.85a19.736 19.736 0 0 0-4.947 1.519C.549 9.001-.302 13.52.122 17.974a19.93 19.93 0 0 0 6.073 3.071 14.65 14.65 0 0 0 1.302-2.112 12.93 12.93 0 0 1-2.048-.987c.172-.126.34-.257.502-.391a14.265 14.265 0 0 0 12.098 0c.164.134.332.265.502.391a12.84 12.84 0 0 1-2.052.988 14.57 14.57 0 0 0 1.302 2.111 19.895 19.895 0 0 0 6.077-3.071c.5-5.177-.838-9.654-3.56-13.605ZM8.02 15.23c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.956 2.419-2.157 2.419Zm7.96 0c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.947 2.419-2.157 2.419Z"/>
+        </svg>
+        <span>Login with Discord</span>
+      </a>
     </section>
   </div>
 
@@ -324,7 +344,7 @@
     <section class="panel chat">
       <div class="chat-top">
         <div>
-          <div id="chatTitle" class="chat-title">Chat</div>
+          <div id="chatTitle" class="chat-title"></div>
           <div id="chatSub" class="sub"></div>
         </div>
         <button id="logout" class="logout">Logout</button>
@@ -341,7 +361,7 @@
 
   <script>
     const qs = new URLSearchParams(location.search);
-    const allowed = ["key", "script", "support"];
+    const allowed = ["key", "script", "ban"];
     let item = allowed.includes(qs.get("item")) ? qs.get("item") : "key";
     let plan = qs.get("plan") || "";
     let me = null;
@@ -360,10 +380,16 @@
     const form = document.getElementById("form");
     const input = document.getElementById("input");
 
+    const icons = {
+      key: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2"/><path d="M15.5 7.5l3 3"/><path d="M11.4 11.4a5 5 0 1 1-2.8-2.8"/><path d="M13 9l8-8"/></svg>`,
+      script: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 9-4 3 4 3"/><path d="m16 9 4 3-4 3"/><path d="m14 5-4 14"/></svg>`,
+      ban: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.7 5.7 18.3 18.3"/></svg>`
+    };
+
     function itemTitle(v) {
       if (v === "key") return "Key";
       if (v === "script") return "Luau Script";
-      if (v === "support") return "Support";
+      if (v === "ban") return "War Tycoon Ban";
       return "Key";
     }
 
@@ -420,8 +446,13 @@
       for (const t of data.threads) {
         const btn = document.createElement("button");
         btn.className = "thread";
-        if (activeUser === t.user_id && item === t.item) btn.classList.add("active");
+
+        if (activeUser === t.user_id && item === t.item) {
+          btn.classList.add("active");
+        }
+
         btn.innerHTML = `<strong>${t.username || t.user_id} · ${itemTitle(t.item)}</strong><span>${t.last_body || ""}</span>`;
+
         btn.onclick = () => {
           activeUser = t.user_id;
           item = t.item;
@@ -429,6 +460,7 @@
           loadMessages();
           loadThreads();
         };
+
         threadsEl.appendChild(btn);
       }
 
@@ -455,7 +487,7 @@
       }
 
       const pt = planTitle(plan);
-      chatTitle.textContent = pt ? `${itemTitle(item)} · ${pt}` : itemTitle(item);
+      chatTitle.innerHTML = `${icons[item] || icons.key}<span>${pt ? `${itemTitle(item)} · ${pt}` : itemTitle(item)}</span>`;
       chatSub.textContent = me.is_admin ? `User: ${activeUser || me.id}` : "Chat with admin";
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
@@ -471,14 +503,20 @@
       });
 
       await loadMessages();
-      if (me.is_admin) await loadThreads();
+
+      if (me.is_admin) {
+        await loadThreads();
+      }
     }
 
     form.addEventListener("submit", async e => {
       e.preventDefault();
 
       const body = input.value.trim();
-      if (!body) return;
+
+      if (!body) {
+        return;
+      }
 
       input.value = "";
       await sendMessage(body);
@@ -512,7 +550,10 @@
       await loadThreads();
       poll = setInterval(async () => {
         await loadThreads();
-        if (activeUser) await loadMessages();
+
+        if (activeUser) {
+          await loadMessages();
+        }
       }, 2500);
     }
 
