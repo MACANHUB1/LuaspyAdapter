@@ -252,19 +252,6 @@
       color: rgba(210, 255, 224, 0.72);
       font-size: 16px;
       line-height: 1.5;
-      margin-bottom: 14px;
-    }
-
-    .privacy {
-      width: min(100%, 520px);
-      margin: 0 auto;
-      padding: 12px 14px;
-      border: 1px solid rgba(116, 255, 177, 0.12);
-      border-radius: 16px;
-      background: rgba(6, 36, 22, 0.55);
-      color: rgba(210, 255, 224, 0.76);
-      font-size: 13px;
-      line-height: 1.45;
     }
 
     .plans {
@@ -433,8 +420,8 @@
 
   <main class="wrap">
     <section class="auth">
-      <div class="auth-user" id="authText">Checking login...</div>
-      <a class="auth-btn" id="authBtn" href="/api/auth/login?next=/key/">Login</a>
+      <div class="auth-user" id="authText">Loading...</div>
+      <a class="auth-btn" id="authBtn" href="/api/auth/login?next=/key/">Login with Discord</a>
     </section>
 
     <header class="top">
@@ -452,8 +439,7 @@
 
     <section class="hero">
       <h1 class="title">Buy Key</h1>
-      <p class="subtitle">Choose your key plan and open private admin chat.</p>
-      <div class="privacy">Discord login only. No password, no email request, no public checkout. Purchase is handled through private chat.</div>
+      <p class="subtitle">Choose your key plan and open admin chat.</p>
     </section>
 
     <section class="plans">
@@ -470,8 +456,8 @@
           <h2 class="plan-name">30 Days</h2>
         </div>
         <div class="price">$0.8</div>
-        <p class="desc">30-day key access. Click below to message admin.</p>
-        <a class="buy" href="/chat/?item=key">
+        <p class="desc">30-day key access.</p>
+        <a class="buy" href="/chat/?item=key&plan=30d">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M20.317 4.369A19.791 19.791 0 0 0 15.37 2.85a13.889 13.889 0 0 0-.632 1.304 18.27 18.27 0 0 0-5.476 0A13.889 13.889 0 0 0 8.63 2.85a19.736 19.736 0 0 0-4.947 1.519C.549 9.001-.302 13.52.122 17.974a19.93 19.93 0 0 0 6.073 3.071 14.65 14.65 0 0 0 1.302-2.112 12.93 12.93 0 0 1-2.048-.987c.172-.126.34-.257.502-.391a14.265 14.265 0 0 0 12.098 0c.164.134.332.265.502.391a12.84 12.84 0 0 1-2.052.988 14.57 14.57 0 0 0 1.302 2.111 19.895 19.895 0 0 0 6.077-3.071c.5-5.177-.838-9.654-3.56-13.605ZM8.02 15.23c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.956 2.419-2.157 2.419Zm7.96 0c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.947 2.419-2.157 2.419Z"/>
           </svg>
@@ -491,8 +477,8 @@
           <h2 class="plan-name">Lifetime</h2>
         </div>
         <div class="price">$3.99</div>
-        <p class="desc">Lifetime key access. Click below to message admin.</p>
-        <a class="buy" href="/chat/?item=key">
+        <p class="desc">Lifetime key access.</p>
+        <a class="buy" href="/chat/?item=key&plan=lifetime">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M20.317 4.369A19.791 19.791 0 0 0 15.37 2.85a13.889 13.889 0 0 0-.632 1.304 18.27 18.27 0 0 0-5.476 0A13.889 13.889 0 0 0 8.63 2.85a19.736 19.736 0 0 0-4.947 1.519C.549 9.001-.302 13.52.122 17.974a19.93 19.93 0 0 0 6.073 3.071 14.65 14.65 0 0 0 1.302-2.112 12.93 12.93 0 0 1-2.048-.987c.172-.126.34-.257.502-.391a14.265 14.265 0 0 0 12.098 0c.164.134.332.265.502.391a12.84 12.84 0 0 1-2.052.988 14.57 14.57 0 0 0 1.302 2.111 19.895 19.895 0 0 0 6.077-3.071c.5-5.177-.838-9.654-3.56-13.605ZM8.02 15.23c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.956 2.419-2.157 2.419Zm7.96 0c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.947 2.419-2.157 2.419Z"/>
           </svg>
@@ -509,8 +495,10 @@
     async function loadAuth() {
       try {
         const res = await fetch("/api/auth/me", { cache: "no-store" });
-        if (!res.ok) throw new Error("auth");
         const data = await res.json();
+
+        if (!data.user) throw new Error("login");
+
         authText.textContent = `Logged in as ${data.user.username}`;
         authBtn.textContent = "Logout";
         authBtn.href = "#";
@@ -520,8 +508,8 @@
           location.reload();
         };
       } catch {
-        authText.textContent = "Anonymous until Discord login";
-        authBtn.textContent = "Login";
+        authText.textContent = "Not logged in";
+        authBtn.textContent = "Login with Discord";
         authBtn.href = `/api/auth/login?next=${encodeURIComponent(location.pathname)}`;
       }
     }
