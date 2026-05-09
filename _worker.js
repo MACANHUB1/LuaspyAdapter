@@ -35,10 +35,6 @@ function getCookie(req, name) {
 }
 
 function setCookie(name, value, maxAge) {
-  return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; Secure; SameSite=Lax`;
-}
-
-function setHttpCookie(name, value, maxAge) {
   return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`;
 }
 
@@ -146,7 +142,9 @@ async function setupDb(env) {
 
 function getAnon(req) {
   const raw = getCookie(req, "anon");
-  if (raw && raw.startsWith("anon_") && raw.length <= 80) return raw;
+
+  if (raw && raw.startsWith("anon_") && raw.length <= 90) return raw;
+
   return `anon_${randomToken(18)}`;
 }
 
@@ -188,7 +186,7 @@ async function authLogin(req, env) {
   auth.searchParams.set("state", state);
 
   return redirect(auth.toString(), {
-    "set-cookie": setHttpCookie("oauth_state", stateToken, 600)
+    "set-cookie": setCookie("oauth_state", stateToken, 600)
   });
 }
 
@@ -271,7 +269,7 @@ async function authCallback(req, env) {
   const headers = new Headers();
   headers.set("location", safeNext(state.next));
   headers.append("set-cookie", clearCookie("oauth_state"));
-  headers.append("set-cookie", setHttpCookie("session", session, 2592000));
+  headers.append("set-cookie", setCookie("session", session, 2592000));
 
   return new Response(null, {
     status: 302,
@@ -304,11 +302,11 @@ async function anonMessagesGet(req, env) {
   const anon = getAnon(req);
 
   const { results } = await env.DB.prepare(
-    "SELECT id, username, thread, body, from_admin, created_at FROM messages WHERE username = ? AND thread = ? ORDER BY id ASC LIMIT 300"
+    "SELECT id, username, thread, body, from_admin, created_at FROM messages WHERE username = ? AND thread = ? ORDER BY id ASC LIMIT 500"
   ).bind(anon, "anonymous").all();
 
   return json({
-    anon,
+    username: anon,
     thread: "anonymous",
     meta: parseThread("anonymous"),
     messages: results || []
@@ -340,7 +338,7 @@ async function anonMessagesPost(req, env) {
 
   return json({
     ok: true,
-    anon,
+    username: anon,
     thread: "anonymous",
     meta: parseThread("anonymous")
   }, 200, {
@@ -365,11 +363,12 @@ async function chatMessagesGet(req, env) {
   if (!targetUsername) return json({ error: "missing_username" }, 400);
 
   const { results } = await env.DB.prepare(
-    "SELECT id, username, thread, body, from_admin, created_at FROM messages WHERE username = ? AND thread = ? ORDER BY id ASC LIMIT 300"
+    "SELECT id, username, thread, body, from_admin, created_at FROM messages WHERE username = ? AND thread = ? ORDER BY id ASC LIMIT 500"
   ).bind(targetUsername, thread).all();
 
   return json({
     user,
+    username: targetUsername,
     thread,
     meta: parseThread(thread),
     messages: results || []
@@ -394,7 +393,7 @@ async function chatMessagesPost(req, env) {
     : makeThread(data.item, data.plan);
 
   const targetUsername = user.is_admin
-    ? cleanUsername(data.username)
+    ? String(data.username || "").trim()
     : user.username;
 
   const body = String(data.body || "").trim().slice(0, 800);
@@ -408,6 +407,7 @@ async function chatMessagesPost(req, env) {
 
   return json({
     ok: true,
+    username: targetUsername,
     thread,
     meta: parseThread(thread)
   });
@@ -420,7 +420,7 @@ async function chatThreads(req, env) {
   if (!user.is_admin) return json({ error: "admin_only" }, 403);
 
   const { results } = await env.DB.prepare(
-    "SELECT m.username, m.thread, u.avatar, MAX(m.created_at) AS updated_at, (SELECT body FROM messages x WHERE x.username = m.username AND x.thread = m.thread ORDER BY x.id DESC LIMIT 1) AS last_body FROM messages m LEFT JOIN users u ON u.username = m.username GROUP BY m.username, m.thread ORDER BY MAX(m.id) DESC LIMIT 100"
+    "SELECT m.username, m.thread, u.avatar, MAX(m.id) AS last_id, MAX(m.created_at) AS updated_at, (SELECT body FROM messages x WHERE x.username = m.username AND x.thread = m.thread ORDER BY x.id DESC LIMIT 1) AS last_body FROM messages m LEFT JOIN users u ON u.username = m.username GROUP BY m.username, m.thread ORDER BY MAX(m.id) DESC LIMIT 100"
   ).all();
 
   return json({
