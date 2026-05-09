@@ -408,9 +408,8 @@
     let plan = qs.get("plan") || "";
     let thread = "";
     let me = null;
-    let activeUser = "";
+    let activeUsername = "";
     let activeThread = "";
-    let poll = null;
     let lastPayload = "";
 
     const login = document.getElementById("login");
@@ -431,19 +430,6 @@
       script: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 9-4 3 4 3"/><path d="m16 9 4 3-4 3"/><path d="m14 5-4 14"/></svg>`,
       ban: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.7 5.7 18.3 18.3"/></svg>`
     };
-
-    function itemTitle(v) {
-      if (v === "key") return "Key";
-      if (v === "script") return "Luau Script";
-      if (v === "ban") return "War Tycoon Ban";
-      return "Key";
-    }
-
-    function planTitle(v) {
-      if (v === "30d") return "30 Days";
-      if (v === "lifetime") return "Lifetime";
-      return "";
-    }
 
     function makeThread(v, p) {
       if (v === "key" && p === "30d") return "key:30d";
@@ -499,6 +485,11 @@
       }
     }
 
+    function renderTitle(meta, sub) {
+      chatTitle.innerHTML = `${icons[meta.item] || icons.key}<span>${meta.title}</span>`;
+      chatSub.textContent = sub || "";
+    }
+
     function renderMessages(messages) {
       const payload = JSON.stringify(messages);
 
@@ -519,7 +510,7 @@
 
       for (const m of messages) {
         const div = document.createElement("div");
-        const own = me.is_admin ? m.from_admin : !m.from_admin;
+        const own = me.is_admin ? Number(m.from_admin) === 1 : Number(m.from_admin) === 0;
         div.className = `msg ${own ? "me" : "admin"}`;
         div.textContent = m.body;
         messagesEl.appendChild(div);
@@ -528,17 +519,12 @@
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
-    function renderTitle(meta, userText = "") {
-      chatTitle.innerHTML = `${icons[meta.item] || icons.key}<span>${meta.title}</span>`;
-      chatSub.textContent = me.is_admin ? userText : "Chat with admin";
-    }
-
     async function loadMessages() {
       let url;
 
       if (me.is_admin) {
-        if (!activeUser || !activeThread) return;
-        url = `/api/chat/messages?user_id=${encodeURIComponent(activeUser)}&thread=${encodeURIComponent(activeThread)}`;
+        if (!activeUsername || !activeThread) return;
+        url = `/api/chat/messages?username=${encodeURIComponent(activeUsername)}&thread=${encodeURIComponent(activeThread)}`;
       } else {
         url = `/api/chat/messages?item=${encodeURIComponent(item)}&plan=${encodeURIComponent(plan)}`;
       }
@@ -546,7 +532,7 @@
       const data = await req(url);
       const meta = data.meta || metaFromThread(activeThread || thread);
 
-      renderTitle(meta, me.is_admin ? `User: ${activeUser}` : "");
+      renderTitle(meta, me.is_admin ? `User: ${activeUsername}` : "Chat with admin");
       renderMessages(data.messages || []);
     }
 
@@ -560,19 +546,19 @@
       }
 
       for (const t of data.threads) {
-        const meta = t.meta || metaFromThread(t.item);
+        const meta = t.meta || metaFromThread(t.thread);
         const btn = document.createElement("button");
         btn.className = "thread";
 
-        if (activeUser === t.user_id && activeThread === t.item) {
+        if (activeUsername === t.username && activeThread === t.thread) {
           btn.classList.add("active");
         }
 
-        btn.innerHTML = `<strong>${t.username || t.user_id} · ${meta.title}</strong><span>${t.last_body || ""}</span>`;
+        btn.innerHTML = `<strong>${t.username} · ${meta.title}</strong><span>${t.last_body || ""}</span>`;
 
         btn.onclick = async () => {
-          activeUser = t.user_id;
-          activeThread = t.item;
+          activeUsername = t.username;
+          activeThread = t.thread;
           lastPayload = "";
           await loadMessages();
           await loadThreads();
@@ -581,9 +567,9 @@
         threadsEl.appendChild(btn);
       }
 
-      if (!activeUser && data.threads[0]) {
-        activeUser = data.threads[0].user_id;
-        activeThread = data.threads[0].item;
+      if (!activeUsername && data.threads[0]) {
+        activeUsername = data.threads[0].username;
+        activeThread = data.threads[0].thread;
         lastPayload = "";
         await loadMessages();
         await loadThreads();
@@ -598,9 +584,9 @@
           await req("/api/chat/messages", {
             method: "POST",
             body: JSON.stringify({
+              username: activeUsername,
               thread: activeThread,
-              body,
-              user_id: activeUser
+              body
             })
           });
         } else {
@@ -660,20 +646,21 @@
       if (!me.is_admin) {
         side.classList.add("hidden");
         thread = makeThread(item, plan);
-        activeUser = me.id;
+        activeUsername = me.username;
         activeThread = thread;
-        renderTitle(metaFromThread(thread));
+        renderTitle(metaFromThread(thread), "Chat with admin");
         await loadMessages();
-        poll = setInterval(loadMessages, 2000);
+        setInterval(loadMessages, 2000);
         return;
       }
 
       side.classList.remove("hidden");
       await loadThreads();
 
-      poll = setInterval(async () => {
+      setInterval(async () => {
         await loadThreads();
-        if (activeUser && activeThread) {
+
+        if (activeUsername && activeThread) {
           await loadMessages();
         }
       }, 2500);
