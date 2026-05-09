@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>lualearn.COM</title>
+  <title>lualearn.com</title>
   <style>
     * {
       box-sizing: border-box;
@@ -50,7 +50,7 @@
       width: min(100%, 980px);
       margin: 0 auto;
       display: grid;
-      grid-template-columns: 280px 1fr;
+      grid-template-columns: 290px 1fr;
       gap: 18px;
     }
 
@@ -159,7 +159,8 @@
       color: #6dff9c;
     }
 
-    .logout {
+    .logout,
+    .back {
       border: 1px solid rgba(116, 255, 177, 0.18);
       border-radius: 14px;
       background: rgba(6, 36, 22, 0.6);
@@ -167,13 +168,21 @@
       padding: 10px 14px;
       font-weight: 800;
       cursor: pointer;
+      text-decoration: none;
       transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease;
     }
 
-    .logout:hover {
+    .logout:hover,
+    .back:hover {
       transform: translateY(-2px);
       border-color: rgba(109, 255, 156, 0.5);
       background: rgba(10, 52, 31, 0.86);
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
     }
 
     .messages {
@@ -195,6 +204,7 @@
       border: 1px solid rgba(116, 255, 177, 0.12);
       background: rgba(6, 36, 22, 0.7);
       overflow-wrap: anywhere;
+      white-space: pre-wrap;
     }
 
     .msg.me {
@@ -206,6 +216,13 @@
     .msg.admin {
       align-self: flex-start;
       background: rgba(10, 52, 31, 0.86);
+    }
+
+    .empty {
+      margin: auto;
+      color: rgba(210, 255, 224, 0.6);
+      text-align: center;
+      font-size: 14px;
     }
 
     .form {
@@ -249,6 +266,12 @@
     .login:hover {
       transform: translateY(-3px) scale(1.03);
       filter: brightness(1.1);
+    }
+
+    .send:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
     }
 
     .login svg {
@@ -315,6 +338,22 @@
       .msg {
         max-width: 88%;
       }
+
+      .chat-top,
+      .form {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .top-actions {
+        width: 100%;
+      }
+
+      .logout,
+      .back,
+      .send {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -347,14 +386,17 @@
           <div id="chatTitle" class="chat-title"></div>
           <div id="chatSub" class="sub"></div>
         </div>
-        <button id="logout" class="logout">Logout</button>
+        <div class="top-actions">
+          <a class="back" href="/">Back</a>
+          <button id="logout" class="logout">Logout</button>
+        </div>
       </div>
 
       <div id="messages" class="messages"></div>
 
       <form id="form" class="form">
         <input id="input" class="input" maxlength="800" placeholder="Write message..." autocomplete="off">
-        <button class="send" type="submit">Send</button>
+        <button id="send" class="send" type="submit">Send</button>
       </form>
     </section>
   </main>
@@ -364,9 +406,12 @@
     const allowed = ["key", "script", "ban"];
     let item = allowed.includes(qs.get("item")) ? qs.get("item") : "key";
     let plan = qs.get("plan") || "";
+    let thread = "";
     let me = null;
-    let activeUser = null;
+    let activeUser = "";
+    let activeThread = "";
     let poll = null;
+    let lastPayload = "";
 
     const login = document.getElementById("login");
     const app = document.getElementById("app");
@@ -379,6 +424,7 @@
     const chatSub = document.getElementById("chatSub");
     const form = document.getElementById("form");
     const input = document.getElementById("input");
+    const send = document.getElementById("send");
 
     const icons = {
       key: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2"/><path d="M15.5 7.5l3 3"/><path d="M11.4 11.4a5 5 0 1 1-2.8-2.8"/><path d="M13 9l8-8"/></svg>`,
@@ -399,6 +445,20 @@
       return "";
     }
 
+    function makeThread(v, p) {
+      if (v === "key" && p === "30d") return "key:30d";
+      if (v === "key" && p === "lifetime") return "key:lifetime";
+      return v;
+    }
+
+    function metaFromThread(v) {
+      if (v === "key:30d") return { item: "key", title: "Key · 30 Days" };
+      if (v === "key:lifetime") return { item: "key", title: "Key · Lifetime" };
+      if (v === "script") return { item: "script", title: "Luau Script" };
+      if (v === "ban") return { item: "ban", title: "War Tycoon Ban" };
+      return { item: "key", title: "Key" };
+    }
+
     async function req(url, options = {}) {
       const res = await fetch(url, {
         ...options,
@@ -408,8 +468,13 @@
         }
       });
 
-      if (!res.ok) throw new Error(String(res.status));
-      return res.json();
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || data.message || String(res.status));
+      }
+
+      return data;
     }
 
     function showLogin() {
@@ -434,6 +499,57 @@
       }
     }
 
+    function renderMessages(messages) {
+      const payload = JSON.stringify(messages);
+
+      if (payload === lastPayload) {
+        return;
+      }
+
+      lastPayload = payload;
+      messagesEl.innerHTML = "";
+
+      if (!messages.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "No messages yet.";
+        messagesEl.appendChild(empty);
+        return;
+      }
+
+      for (const m of messages) {
+        const div = document.createElement("div");
+        const own = me.is_admin ? m.from_admin : !m.from_admin;
+        div.className = `msg ${own ? "me" : "admin"}`;
+        div.textContent = m.body;
+        messagesEl.appendChild(div);
+      }
+
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function renderTitle(meta, userText = "") {
+      chatTitle.innerHTML = `${icons[meta.item] || icons.key}<span>${meta.title}</span>`;
+      chatSub.textContent = me.is_admin ? userText : "Chat with admin";
+    }
+
+    async function loadMessages() {
+      let url;
+
+      if (me.is_admin) {
+        if (!activeUser || !activeThread) return;
+        url = `/api/chat/messages?user_id=${encodeURIComponent(activeUser)}&thread=${encodeURIComponent(activeThread)}`;
+      } else {
+        url = `/api/chat/messages?item=${encodeURIComponent(item)}&plan=${encodeURIComponent(plan)}`;
+      }
+
+      const data = await req(url);
+      const meta = data.meta || metaFromThread(activeThread || thread);
+
+      renderTitle(meta, me.is_admin ? `User: ${activeUser}` : "");
+      renderMessages(data.messages || []);
+    }
+
     async function loadThreads() {
       const data = await req("/api/chat/threads");
       threadsEl.innerHTML = "";
@@ -444,21 +560,22 @@
       }
 
       for (const t of data.threads) {
+        const meta = t.meta || metaFromThread(t.item);
         const btn = document.createElement("button");
         btn.className = "thread";
 
-        if (activeUser === t.user_id && item === t.item) {
+        if (activeUser === t.user_id && activeThread === t.item) {
           btn.classList.add("active");
         }
 
-        btn.innerHTML = `<strong>${t.username || t.user_id} · ${itemTitle(t.item)}</strong><span>${t.last_body || ""}</span>`;
+        btn.innerHTML = `<strong>${t.username || t.user_id} · ${meta.title}</strong><span>${t.last_body || ""}</span>`;
 
-        btn.onclick = () => {
+        btn.onclick = async () => {
           activeUser = t.user_id;
-          item = t.item;
-          plan = "";
-          loadMessages();
-          loadThreads();
+          activeThread = t.item;
+          lastPayload = "";
+          await loadMessages();
+          await loadThreads();
         };
 
         threadsEl.appendChild(btn);
@@ -466,46 +583,45 @@
 
       if (!activeUser && data.threads[0]) {
         activeUser = data.threads[0].user_id;
-        item = data.threads[0].item;
-        plan = "";
+        activeThread = data.threads[0].item;
+        lastPayload = "";
         await loadMessages();
         await loadThreads();
       }
     }
 
-    async function loadMessages() {
-      const userParam = me.is_admin ? `&user_id=${encodeURIComponent(activeUser || me.id)}` : "";
-      const data = await req(`/api/chat/messages?item=${encodeURIComponent(item)}${userParam}`);
-      messagesEl.innerHTML = "";
-
-      for (const m of data.messages) {
-        const div = document.createElement("div");
-        const own = me.is_admin ? m.from_admin : !m.from_admin;
-        div.className = `msg ${own ? "me" : "admin"}`;
-        div.textContent = m.body;
-        messagesEl.appendChild(div);
-      }
-
-      const pt = planTitle(plan);
-      chatTitle.innerHTML = `${icons[item] || icons.key}<span>${pt ? `${itemTitle(item)} · ${pt}` : itemTitle(item)}</span>`;
-      chatSub.textContent = me.is_admin ? `User: ${activeUser || me.id}` : "Chat with admin";
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
     async function sendMessage(body) {
-      await req("/api/chat/messages", {
-        method: "POST",
-        body: JSON.stringify({
-          item,
-          body,
-          user_id: activeUser
-        })
-      });
+      send.disabled = true;
 
-      await loadMessages();
+      try {
+        if (me.is_admin) {
+          await req("/api/chat/messages", {
+            method: "POST",
+            body: JSON.stringify({
+              thread: activeThread,
+              body,
+              user_id: activeUser
+            })
+          });
+        } else {
+          await req("/api/chat/messages", {
+            method: "POST",
+            body: JSON.stringify({
+              item,
+              plan,
+              body
+            })
+          });
+        }
 
-      if (me.is_admin) {
-        await loadThreads();
+        lastPayload = "";
+        await loadMessages();
+
+        if (me.is_admin) {
+          await loadThreads();
+        }
+      } finally {
+        send.disabled = false;
       }
     }
 
@@ -514,12 +630,15 @@
 
       const body = input.value.trim();
 
-      if (!body) {
-        return;
-      }
+      if (!body) return;
 
       input.value = "";
-      await sendMessage(body);
+
+      try {
+        await sendMessage(body);
+      } catch (err) {
+        alert(`Message error: ${err.message}`);
+      }
     });
 
     document.getElementById("logout").onclick = async () => {
@@ -540,18 +659,21 @@
 
       if (!me.is_admin) {
         side.classList.add("hidden");
+        thread = makeThread(item, plan);
         activeUser = me.id;
+        activeThread = thread;
+        renderTitle(metaFromThread(thread));
         await loadMessages();
-        poll = setInterval(loadMessages, 2500);
+        poll = setInterval(loadMessages, 2000);
         return;
       }
 
       side.classList.remove("hidden");
       await loadThreads();
+
       poll = setInterval(async () => {
         await loadThreads();
-
-        if (activeUser) {
+        if (activeUser && activeThread) {
           await loadMessages();
         }
       }, 2500);
