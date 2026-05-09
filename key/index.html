@@ -23,12 +23,12 @@
         linear-gradient(rgba(24, 96, 59, 0.35) 1px, transparent 1px),
         linear-gradient(90deg, rgba(24, 96, 59, 0.35) 1px, transparent 1px);
       background-size: 42px 42px;
-      animation: gridMove 9s linear infinite;
+      animation: grid 9s linear infinite;
       overflow-x: hidden;
       padding: 24px;
     }
 
-    @keyframes gridMove {
+    @keyframes grid {
       from {
         background-position: 0 0, 0 0;
       }
@@ -38,7 +38,7 @@
       }
     }
 
-    @keyframes floatBox {
+    @keyframes float {
       0%, 100% {
         transform: translateY(0) rotate(0deg);
         opacity: 0.18;
@@ -84,7 +84,7 @@
       border: 1px solid rgba(109, 255, 156, 0.35);
       background: rgba(109, 255, 156, 0.04);
       box-shadow: 0 0 18px rgba(109, 255, 156, 0.18);
-      animation: floatBox 5s ease-in-out infinite;
+      animation: float 5s ease-in-out infinite;
     }
 
     .boxes span:nth-child(1) {
@@ -123,19 +123,67 @@
       gap: 18px;
     }
 
+    .top,
+    .hero,
+    .plan,
+    .auth {
+      border: 1px solid rgba(88, 255, 159, 0.18);
+      background: rgba(3, 23, 14, 0.62);
+      box-shadow:
+        0 0 45px rgba(25, 145, 82, 0.18),
+        inset 0 0 25px rgba(44, 255, 142, 0.04);
+      backdrop-filter: blur(14px);
+    }
+
+    .auth {
+      padding: 14px 18px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .auth-user {
+      min-width: 0;
+      font-size: 13px;
+      color: rgba(210, 255, 224, 0.74);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .auth-btn {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(116, 255, 177, 0.2);
+      border-radius: 13px;
+      padding: 0 13px;
+      color: #eaffea;
+      background: rgba(6, 36, 22, 0.7);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease, color 0.22s ease;
+    }
+
+    .auth-btn:hover {
+      transform: translateY(-2px);
+      color: #ffffff;
+      border-color: rgba(109, 255, 156, 0.5);
+      background: rgba(10, 52, 31, 0.86);
+    }
+
     .top {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 14px;
       padding: 18px 20px;
-      border: 1px solid rgba(88, 255, 159, 0.18);
       border-radius: 24px;
-      background: rgba(3, 23, 14, 0.62);
-      box-shadow:
-        0 0 45px rgba(25, 145, 82, 0.18),
-        inset 0 0 25px rgba(44, 255, 142, 0.04);
-      backdrop-filter: blur(14px);
     }
 
     .brand {
@@ -189,13 +237,7 @@
     .hero {
       padding: 34px 28px;
       text-align: center;
-      border: 1px solid rgba(88, 255, 159, 0.18);
       border-radius: 28px;
-      background: rgba(3, 23, 14, 0.62);
-      box-shadow:
-        0 0 45px rgba(25, 145, 82, 0.18),
-        inset 0 0 25px rgba(44, 255, 142, 0.04);
-      backdrop-filter: blur(14px);
     }
 
     .title {
@@ -210,6 +252,19 @@
       color: rgba(210, 255, 224, 0.72);
       font-size: 16px;
       line-height: 1.5;
+      margin-bottom: 14px;
+    }
+
+    .privacy {
+      width: min(100%, 520px);
+      margin: 0 auto;
+      padding: 12px 14px;
+      border: 1px solid rgba(116, 255, 177, 0.12);
+      border-radius: 16px;
+      background: rgba(6, 36, 22, 0.55);
+      color: rgba(210, 255, 224, 0.76);
+      font-size: 13px;
+      line-height: 1.45;
     }
 
     .plans {
@@ -221,13 +276,7 @@
     .plan {
       position: relative;
       padding: 26px;
-      border: 1px solid rgba(88, 255, 159, 0.18);
       border-radius: 28px;
-      background: rgba(3, 23, 14, 0.62);
-      box-shadow:
-        0 0 45px rgba(25, 145, 82, 0.18),
-        inset 0 0 25px rgba(44, 255, 142, 0.04);
-      backdrop-filter: blur(14px);
       overflow: hidden;
       transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease, background 0.28s ease;
     }
@@ -361,12 +410,14 @@
         grid-template-columns: 1fr;
       }
 
-      .top {
+      .top,
+      .auth {
         flex-direction: column;
         align-items: stretch;
       }
 
-      .back {
+      .back,
+      .auth-btn {
         width: 100%;
       }
     }
@@ -381,6 +432,11 @@
   </div>
 
   <main class="wrap">
+    <section class="auth">
+      <div class="auth-user" id="authText">Checking login...</div>
+      <a class="auth-btn" id="authBtn" href="/api/auth/login?next=/key/">Login</a>
+    </section>
+
     <header class="top">
       <div class="brand">
         <span class="brand-icon">
@@ -396,7 +452,8 @@
 
     <section class="hero">
       <h1 class="title">Buy Key</h1>
-      <p class="subtitle">Choose your access plan and open Discord to buy a key.</p>
+      <p class="subtitle">Choose your key plan and open private admin chat.</p>
+      <div class="privacy">Discord login only. No password, no email request, no public checkout. Purchase is handled through private chat.</div>
     </section>
 
     <section class="plans">
@@ -413,8 +470,8 @@
           <h2 class="plan-name">30 Days</h2>
         </div>
         <div class="price">$0.8</div>
-        <p class="desc">Temporary access for 30 days.</p>
-        <a class="buy" href="https://discord.gg/wqxnnNfjZ5" target="_blank" rel="noopener noreferrer">
+        <p class="desc">30-day key access. Click below to message admin.</p>
+        <a class="buy" href="/chat/?item=key">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M20.317 4.369A19.791 19.791 0 0 0 15.37 2.85a13.889 13.889 0 0 0-.632 1.304 18.27 18.27 0 0 0-5.476 0A13.889 13.889 0 0 0 8.63 2.85a19.736 19.736 0 0 0-4.947 1.519C.549 9.001-.302 13.52.122 17.974a19.93 19.93 0 0 0 6.073 3.071 14.65 14.65 0 0 0 1.302-2.112 12.93 12.93 0 0 1-2.048-.987c.172-.126.34-.257.502-.391a14.265 14.265 0 0 0 12.098 0c.164.134.332.265.502.391a12.84 12.84 0 0 1-2.052.988 14.57 14.57 0 0 0 1.302 2.111 19.895 19.895 0 0 0 6.077-3.071c.5-5.177-.838-9.654-3.56-13.605ZM8.02 15.23c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.956 2.419-2.157 2.419Zm7.96 0c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.947 2.419-2.157 2.419Z"/>
           </svg>
@@ -434,8 +491,8 @@
           <h2 class="plan-name">Lifetime</h2>
         </div>
         <div class="price">$3.99</div>
-        <p class="desc">Permanent access with one-time payment.</p>
-        <a class="buy" href="https://discord.gg/wqxnnNfjZ5" target="_blank" rel="noopener noreferrer">
+        <p class="desc">Lifetime key access. Click below to message admin.</p>
+        <a class="buy" href="/chat/?item=key">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M20.317 4.369A19.791 19.791 0 0 0 15.37 2.85a13.889 13.889 0 0 0-.632 1.304 18.27 18.27 0 0 0-5.476 0A13.889 13.889 0 0 0 8.63 2.85a19.736 19.736 0 0 0-4.947 1.519C.549 9.001-.302 13.52.122 17.974a19.93 19.93 0 0 0 6.073 3.071 14.65 14.65 0 0 0 1.302-2.112 12.93 12.93 0 0 1-2.048-.987c.172-.126.34-.257.502-.391a14.265 14.265 0 0 0 12.098 0c.164.134.332.265.502.391a12.84 12.84 0 0 1-2.052.988 14.57 14.57 0 0 0 1.302 2.111 19.895 19.895 0 0 0 6.077-3.071c.5-5.177-.838-9.654-3.56-13.605ZM8.02 15.23c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.956 2.419-2.157 2.419Zm7.96 0c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.947 2.419-2.157 2.419Z"/>
           </svg>
@@ -444,5 +501,32 @@
       </article>
     </section>
   </main>
+
+  <script>
+    const authText = document.getElementById("authText");
+    const authBtn = document.getElementById("authBtn");
+
+    async function loadAuth() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!res.ok) throw new Error("auth");
+        const data = await res.json();
+        authText.textContent = `Logged in as ${data.user.username}`;
+        authBtn.textContent = "Logout";
+        authBtn.href = "#";
+        authBtn.onclick = async e => {
+          e.preventDefault();
+          await fetch("/api/auth/logout", { method: "POST" });
+          location.reload();
+        };
+      } catch {
+        authText.textContent = "Anonymous until Discord login";
+        authBtn.textContent = "Login";
+        authBtn.href = `/api/auth/login?next=${encodeURIComponent(location.pathname)}`;
+      }
+    }
+
+    loadAuth();
+  </script>
 </body>
 </html>
