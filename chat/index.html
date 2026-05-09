@@ -47,10 +47,10 @@
     .app {
       position: relative;
       z-index: 1;
-      width: min(100%, 980px);
+      width: min(100%, 1040px);
       margin: 0 auto;
       display: grid;
-      grid-template-columns: 290px 1fr;
+      grid-template-columns: 320px 1fr;
       gap: 18px;
     }
 
@@ -244,6 +244,11 @@
       font-size: 15px;
     }
 
+    .input:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     .send,
     .login {
       min-height: 48px;
@@ -401,234 +406,293 @@
     </section>
   </main>
 
- <script>
-  const qs = new URLSearchParams(location.search);
-  const mode = qs.get("mode") || "";
-  const isAnon = mode === "anonymous";
-  const allowed = ["key", "script", "ban"];
-  let item = allowed.includes(qs.get("item")) ? qs.get("item") : "key";
-  let plan = qs.get("plan") || "";
-  let me = null;
-  let activeUsername = "";
-  let activeThread = "";
-  let lastPayload = "";
+  <script>
+    const qs = new URLSearchParams(location.search);
+    const mode = qs.get("mode") || "";
+    const isAnon = mode === "anonymous";
+    const allowed = ["key", "script", "ban"];
+    let item = allowed.includes(qs.get("item")) ? qs.get("item") : "key";
+    let plan = qs.get("plan") || "";
+    let me = null;
+    let activeUsername = "";
+    let activeThread = "";
+    let lastPayload = "";
+    let loadingThreads = false;
+    let loadingMessages = false;
 
-  const login = document.getElementById("login");
-  const app = document.getElementById("app");
-  const side = document.getElementById("side");
-  const loginBtn = document.getElementById("loginBtn");
-  const userLabel = document.getElementById("userLabel");
-  const threadsEl = document.getElementById("threads");
-  const messagesEl = document.getElementById("messages");
-  const chatTitle = document.getElementById("chatTitle");
-  const chatSub = document.getElementById("chatSub");
-  const form = document.getElementById("form");
-  const input = document.getElementById("input");
-  const send = document.getElementById("send");
+    const login = document.getElementById("login");
+    const app = document.getElementById("app");
+    const side = document.getElementById("side");
+    const loginBtn = document.getElementById("loginBtn");
+    const userLabel = document.getElementById("userLabel");
+    const threadsEl = document.getElementById("threads");
+    const messagesEl = document.getElementById("messages");
+    const chatTitle = document.getElementById("chatTitle");
+    const chatSub = document.getElementById("chatSub");
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+    const send = document.getElementById("send");
+    const logout = document.getElementById("logout");
 
-  const icons = {
-    anonymous: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>`,
-    key: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2"/><path d="M15.5 7.5l3 3"/><path d="M11.4 11.4a5 5 0 1 1-2.8-2.8"/><path d="M13 9l8-8"/></svg>`,
-    script: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 9-4 3 4 3"/><path d="m16 9 4 3-4 3"/><path d="m14 5-4 14"/></svg>`,
-    ban: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.7 5.7 18.3 18.3"/></svg>`
-  };
+    const icons = {
+      anonymous: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>`,
+      key: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2"/><path d="M15.5 7.5l3 3"/><path d="M11.4 11.4a5 5 0 1 1-2.8-2.8"/><path d="M13 9l8-8"/></svg>`,
+      script: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 9-4 3 4 3"/><path d="m16 9 4 3-4 3"/><path d="m14 5-4 14"/></svg>`,
+      ban: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.7 5.7 18.3 18.3"/></svg>`
+    };
 
-  function makeThread(v, p) {
-    if (v === "key" && p === "30d") return "key:30d";
-    if (v === "key" && p === "lifetime") return "key:lifetime";
-    return v;
-  }
+    function makeThread(v, p) {
+      if (v === "key" && p === "30d") return "key:30d";
+      if (v === "key" && p === "lifetime") return "key:lifetime";
+      return v;
+    }
 
-  function metaFromThread(v) {
-    if (v === "anonymous") return { item: "anonymous", title: "Anonymous Message" };
-    if (v === "key:30d") return { item: "key", title: "Key · 30 Days" };
-    if (v === "key:lifetime") return { item: "key", title: "Key · Lifetime" };
-    if (v === "script") return { item: "script", title: "Luau Script" };
-    if (v === "ban") return { item: "ban", title: "War Tycoon Ban" };
-    return { item: "key", title: "Key" };
-  }
+    function metaFromThread(v) {
+      if (v === "anonymous") return { item: "anonymous", title: "Anonymous Message" };
+      if (v === "key:30d") return { item: "key", title: "Key · 30 Days" };
+      if (v === "key:lifetime") return { item: "key", title: "Key · Lifetime" };
+      if (v === "script") return { item: "script", title: "Luau Script" };
+      if (v === "ban") return { item: "ban", title: "War Tycoon Ban" };
+      return { item: "key", title: "Key" };
+    }
 
-  async function req(url, options = {}) {
-    const res = await fetch(url, {
-      ...options,
-      headers: {
-        "content-type": "application/json",
-        ...(options.headers || {})
+    async function req(url, options = {}) {
+      const res = await fetch(url, {
+        ...options,
+        headers: {
+          "content-type": "application/json",
+          ...(options.headers || {})
+        }
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || data.message || String(res.status));
       }
-    });
 
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(data.error || data.message || String(res.status));
+      return data;
     }
 
-    return data;
-  }
-
-  function showLogin() {
-    login.classList.remove("hidden");
-    app.classList.add("hidden");
-    loginBtn.href = `/api/auth/login?next=${encodeURIComponent(location.pathname + location.search)}`;
-  }
-
-  function showApp() {
-    login.classList.add("hidden");
-    app.classList.remove("hidden");
-  }
-
-  function renderTitle(meta, sub) {
-    chatTitle.innerHTML = `${icons[meta.item] || icons.key}<span>${meta.title}</span>`;
-    chatSub.textContent = sub || "";
-  }
-
-  function renderEmpty(text) {
-    messagesEl.innerHTML = "";
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = text;
-    messagesEl.appendChild(empty);
-  }
-
-  function renderMessages(messages) {
-    const payload = JSON.stringify(messages);
-
-    if (payload === lastPayload) return;
-
-    lastPayload = payload;
-    messagesEl.innerHTML = "";
-
-    if (!messages.length) {
-      renderEmpty("No messages yet.");
-      return;
+    function showLogin() {
+      login.classList.remove("hidden");
+      app.classList.add("hidden");
+      loginBtn.href = `/api/auth/login?next=${encodeURIComponent(location.pathname + location.search)}`;
     }
 
-    for (const m of messages) {
+    function showApp() {
+      login.classList.add("hidden");
+      app.classList.remove("hidden");
+    }
+
+    function setFormEnabled(value, placeholder = "Write message...") {
+      input.disabled = !value;
+      send.disabled = !value;
+      input.placeholder = value ? placeholder : "Select a chat first...";
+    }
+
+    function renderTitle(meta, sub) {
+      chatTitle.innerHTML = `${icons[meta.item] || icons.key}<span>${meta.title}</span>`;
+      chatSub.textContent = sub || "";
+    }
+
+    function renderEmpty(text) {
+      messagesEl.innerHTML = "";
       const div = document.createElement("div");
-      const own = isAnon ? Number(m.from_admin) === 0 : me.is_admin ? Number(m.from_admin) === 1 : Number(m.from_admin) === 0;
-      div.className = `msg ${own ? "me" : "admin"}`;
-      div.textContent = m.body;
+      div.className = "empty";
+      div.textContent = text;
       messagesEl.appendChild(div);
     }
 
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
+    function renderMessages(messages, force = false) {
+      const payload = JSON.stringify(messages);
 
-  async function loadMe() {
-    try {
-      const data = await req("/api/auth/me");
-      if (!data.user) return false;
-      me = data.user;
-      return true;
-    } catch {
-      return false;
-    }
-  }
+      if (!force && payload === lastPayload) return;
 
-  async function loadAnonMessages() {
-    const data = await req("/api/anon/messages");
-    renderTitle(data.meta || metaFromThread("anonymous"), "Send a message without Discord login");
-    renderMessages(data.messages || []);
-  }
+      lastPayload = payload;
+      messagesEl.innerHTML = "";
 
-  async function loadMessages() {
-    let url;
-
-    if (me.is_admin) {
-      if (!activeUsername || !activeThread) {
-        renderTitle({ item: "key", title: "Select Chat" }, "Admin mode");
-        renderEmpty("No chats selected.");
-        input.disabled = true;
-        send.disabled = true;
+      if (!messages.length) {
+        renderEmpty("No messages yet.");
         return;
       }
 
-      input.disabled = false;
-      send.disabled = false;
-      url = `/api/chat/messages?username=${encodeURIComponent(activeUsername)}&thread=${encodeURIComponent(activeThread)}`;
-    } else {
-      activeUsername = me.username;
-      activeThread = makeThread(item, plan);
-      url = `/api/chat/messages?item=${encodeURIComponent(item)}&plan=${encodeURIComponent(plan)}`;
-    }
+      for (const m of messages) {
+        const div = document.createElement("div");
+        const own = isAnon
+          ? Number(m.from_admin) === 0
+          : me && me.is_admin
+            ? Number(m.from_admin) === 1
+            : Number(m.from_admin) === 0;
 
-    const data = await req(url);
-    renderTitle(data.meta || metaFromThread(activeThread), me.is_admin ? `User: ${activeUsername}` : "Chat with admin");
-    renderMessages(data.messages || []);
-  }
-
-  async function loadThreads() {
-    const data = await req("/api/chat/threads");
-    const threads = data.threads || [];
-
-    threadsEl.innerHTML = "";
-
-    if (!threads.length) {
-      activeUsername = "";
-      activeThread = "";
-      threadsEl.innerHTML = `<div class="sub">No messages yet.</div>`;
-      await loadMessages();
-      return;
-    }
-
-    if (!activeUsername || !activeThread) {
-      activeUsername = threads[0].username;
-      activeThread = threads[0].thread;
-      lastPayload = "";
-    }
-
-    for (const t of threads) {
-      const meta = t.meta || metaFromThread(t.thread);
-      const btn = document.createElement("button");
-      btn.className = "thread";
-
-      if (activeUsername === t.username && activeThread === t.thread) {
-        btn.classList.add("active");
+        div.className = `msg ${own ? "me" : "admin"}`;
+        div.textContent = m.body;
+        messagesEl.appendChild(div);
       }
 
-      btn.innerHTML = `<strong>${t.display || t.username} · ${meta.title}</strong><span>${t.last_body || ""}</span>`;
-
-      btn.onclick = async () => {
-        activeUsername = t.username;
-        activeThread = t.thread;
-        lastPayload = "";
-        await loadMessages();
-        await loadThreads();
-      };
-
-      threadsEl.appendChild(btn);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
-    await loadMessages();
-  }
+    async function loadMe() {
+      try {
+        const data = await req("/api/auth/me");
+        if (!data.user) return false;
+        me = data.user;
+        return true;
+      } catch {
+        return false;
+      }
+    }
 
-  async function sendMessage(body) {
-    send.disabled = true;
+    async function loadAnonMessages() {
+      if (loadingMessages) return;
+      loadingMessages = true;
 
-    try {
+      try {
+        const data = await req("/api/anon/messages");
+        renderTitle(data.meta || metaFromThread("anonymous"), "Send a message without Discord login");
+        renderMessages(data.messages || []);
+        setFormEnabled(true, "Write anonymous message...");
+      } finally {
+        loadingMessages = false;
+      }
+    }
+
+    async function loadMessages(force = false) {
+      if (loadingMessages) return;
+      loadingMessages = true;
+
+      try {
+        if (me && me.is_admin) {
+          if (!activeUsername || !activeThread) {
+            renderTitle({ item: "anonymous", title: "Select Chat" }, "Admin mode");
+            renderEmpty("Select a chat on the left.");
+            setFormEnabled(false);
+            return;
+          }
+
+          const url = `/api/chat/messages?username=${encodeURIComponent(activeUsername)}&thread=${encodeURIComponent(activeThread)}`;
+          const data = await req(url);
+          const meta = data.meta || metaFromThread(activeThread);
+
+          renderTitle(meta, activeThread === "anonymous" ? "Anonymous thread" : `User: ${activeUsername}`);
+          renderMessages(data.messages || [], force);
+          setFormEnabled(true, "Write reply...");
+          return;
+        }
+
+        activeUsername = me.username;
+        activeThread = makeThread(item, plan);
+
+        const url = `/api/chat/messages?item=${encodeURIComponent(item)}&plan=${encodeURIComponent(plan)}`;
+        const data = await req(url);
+
+        renderTitle(data.meta || metaFromThread(activeThread), "Chat with admin");
+        renderMessages(data.messages || [], force);
+        setFormEnabled(true, "Write message...");
+      } finally {
+        loadingMessages = false;
+      }
+    }
+
+    async function loadThreads(keepSelection = true) {
+      if (loadingThreads) return;
+      loadingThreads = true;
+
+      try {
+        const data = await req("/api/chat/threads");
+        const threads = data.threads || [];
+
+        threadsEl.innerHTML = "";
+
+        if (!threads.length) {
+          activeUsername = "";
+          activeThread = "";
+          threadsEl.innerHTML = `<div class="sub">No messages yet.</div>`;
+          renderTitle({ item: "anonymous", title: "Admin Chat" }, "Waiting for messages");
+          renderEmpty("No chats yet.");
+          setFormEnabled(false);
+          return;
+        }
+
+        const selectedExists = threads.some(t => t.username === activeUsername && t.thread === activeThread);
+
+        if (!keepSelection || !activeUsername || !activeThread || !selectedExists) {
+          activeUsername = threads[0].username;
+          activeThread = threads[0].thread;
+          lastPayload = "";
+        }
+
+        for (const t of threads) {
+          const meta = t.meta || metaFromThread(t.thread);
+          const btn = document.createElement("button");
+          btn.className = "thread";
+
+          if (activeUsername === t.username && activeThread === t.thread) {
+            btn.classList.add("active");
+          }
+
+          btn.innerHTML = `<strong>${t.display || t.username} · ${meta.title}</strong><span>${t.last_body || ""}</span>`;
+
+          btn.onclick = async () => {
+            activeUsername = t.username;
+            activeThread = t.thread;
+            lastPayload = "";
+            await loadThreads(true);
+            await loadMessages(true);
+          };
+
+          threadsEl.appendChild(btn);
+        }
+      } finally {
+        loadingThreads = false;
+      }
+    }
+
+    async function sendMessage(body) {
       if (isAnon) {
-        await req("/api/anon/messages", {
-          method: "POST",
-          body: JSON.stringify({ body })
-        });
+        send.disabled = true;
 
-        lastPayload = "";
-        await loadAnonMessages();
+        try {
+          await req("/api/anon/messages", {
+            method: "POST",
+            body: JSON.stringify({ body })
+          });
+
+          lastPayload = "";
+          await loadAnonMessages();
+        } finally {
+          send.disabled = false;
+        }
+
         return;
       }
 
-      if (me.is_admin) {
-        if (!activeUsername || !activeThread) return;
+      if (me && me.is_admin && (!activeUsername || !activeThread)) {
+        renderEmpty("Select a chat first.");
+        setFormEnabled(false);
+        return;
+      }
 
-        await req("/api/chat/messages", {
-          method: "POST",
-          body: JSON.stringify({
-            username: activeUsername,
-            thread: activeThread,
-            body
-          })
-        });
-      } else {
+      send.disabled = true;
+
+      try {
+        if (me && me.is_admin) {
+          await req("/api/chat/messages", {
+            method: "POST",
+            body: JSON.stringify({
+              username: activeUsername,
+              thread: activeThread,
+              body
+            })
+          });
+
+          lastPayload = "";
+          await loadThreads(true);
+          await loadMessages(true);
+          return;
+        }
+
         await req("/api/chat/messages", {
           method: "POST",
           body: JSON.stringify({
@@ -637,80 +701,77 @@
             body
           })
         });
+
+        lastPayload = "";
+        await loadMessages(true);
+      } finally {
+        send.disabled = false;
+      }
+    }
+
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+
+      const body = input.value.trim();
+
+      if (!body) return;
+
+      input.value = "";
+
+      try {
+        await sendMessage(body);
+      } catch (err) {
+        renderEmpty(`Message error: ${err.message}`);
+      }
+    });
+
+    logout.onclick = async () => {
+      await fetch("/api/auth/logout", { method: "POST" });
+      location.href = "/";
+    };
+
+    async function init() {
+      if (isAnon) {
+        showApp();
+        side.classList.add("hidden");
+        logout.style.display = "none";
+        userLabel.textContent = "Anonymous";
+        await loadAnonMessages();
+        setInterval(loadAnonMessages, 2500);
+        return;
       }
 
-      lastPayload = "";
-      await loadMessages();
+      const ok = await loadMe();
 
-      if (me && me.is_admin) {
-        await loadThreads();
+      if (!ok) {
+        showLogin();
+        return;
       }
-    } finally {
-      send.disabled = false;
-    }
-  }
 
-  form.addEventListener("submit", async e => {
-    e.preventDefault();
-
-    const body = input.value.trim();
-
-    if (!body) return;
-
-    input.value = "";
-
-    try {
-      await sendMessage(body);
-    } catch (err) {
-      renderEmpty(`Message error: ${err.message}`);
-    }
-  });
-
-  document.getElementById("logout").onclick = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    location.href = "/";
-  };
-
-  async function init() {
-    if (isAnon) {
       showApp();
-      side.classList.add("hidden");
-      document.getElementById("logout").style.display = "none";
-      userLabel.textContent = "Anonymous";
-      input.placeholder = "Write anonymous message...";
-      await loadAnonMessages();
-      setInterval(loadAnonMessages, 2500);
-      return;
-    }
+      userLabel.textContent = `${me.username}${me.is_admin ? " · admin" : ""}`;
 
-    const ok = await loadMe();
+      if (me.is_admin) {
+        side.classList.remove("hidden");
+        await loadThreads(false);
+        await loadMessages(true);
 
-    if (!ok) {
-      showLogin();
-      return;
-    }
+        setInterval(async () => {
+          await loadThreads(true);
+          await loadMessages(false);
+        }, 2500);
 
-    showApp();
-    userLabel.textContent = `${me.username}${me.is_admin ? " · admin" : ""}`;
+        return;
+      }
 
-    if (!me.is_admin) {
       side.classList.add("hidden");
       activeUsername = me.username;
       activeThread = makeThread(item, plan);
-      await loadMessages();
-      setInterval(loadMessages, 2000);
-      return;
+      await loadMessages(true);
+      setInterval(() => loadMessages(false), 2000);
     }
 
-    side.classList.remove("hidden");
-    await loadThreads();
-
-    setInterval(async () => {
-      await loadThreads();
-    }, 2500);
-  }
-
-  init();
-</script>
+    init();
+  </script>
 </body>
 </html>
