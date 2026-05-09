@@ -61,7 +61,7 @@ function cleanItem(value) {
 
   if (item === "key") return "key";
   if (item === "script") return "script";
-  if (item === "support") return "support";
+  if (item === "ban") return "ban";
 
   return "key";
 }
