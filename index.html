@@ -23,7 +23,18 @@
         linear-gradient(rgba(24, 96, 59, 0.35) 1px, transparent 1px),
         linear-gradient(90deg, rgba(24, 96, 59, 0.35) 1px, transparent 1px);
       background-size: 42px 42px;
-      overflow: hidden;
+      animation: gridMove 9s linear infinite;
+      overflow-x: hidden;
+    }
+
+    @keyframes gridMove {
+      from {
+        background-position: 0 0, 0 0;
+      }
+
+      to {
+        background-position: 42px 42px, 42px 42px;
+      }
     }
 
     body::before {
@@ -36,15 +47,17 @@
       pointer-events: none;
     }
 
-    .card {
+    .wrap {
       position: relative;
       z-index: 1;
-      width: min(92vw, 390px);
-      padding: 38px 28px;
+      width: min(92vw, 420px);
       display: flex;
       flex-direction: column;
-      align-items: center;
-      text-align: center;
+      gap: 18px;
+    }
+
+    .card,
+    .price {
       border: 1px solid rgba(88, 255, 159, 0.18);
       border-radius: 28px;
       background: rgba(3, 23, 14, 0.62);
@@ -52,6 +65,14 @@
         0 0 45px rgba(25, 145, 82, 0.18),
         inset 0 0 25px rgba(44, 255, 142, 0.04);
       backdrop-filter: blur(14px);
+    }
+
+    .card {
+      padding: 38px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
     }
 
     .avatar {
@@ -119,9 +140,56 @@
       filter: brightness(0);
     }
 
+    .price {
+      padding: 24px;
+    }
+
+    .price-title {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      text-align: center;
+      text-shadow: 0 0 18px rgba(111, 255, 172, 0.22);
+    }
+
+    .price-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .price-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 16px;
+      border: 1px solid rgba(116, 255, 177, 0.14);
+      border-radius: 16px;
+      background: rgba(6, 36, 22, 0.55);
+    }
+
+    .price-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: rgba(234, 255, 234, 0.92);
+    }
+
+    .price-cost {
+      font-size: 17px;
+      font-weight: 900;
+      color: #6dff9c;
+      white-space: nowrap;
+    }
+
     @media (max-width: 420px) {
       .card {
         padding: 32px 22px;
+        border-radius: 24px;
+      }
+
+      .price {
+        padding: 20px;
         border-radius: 24px;
       }
 
@@ -133,18 +201,38 @@
       .name {
         font-size: 26px;
       }
+
+      .price-item {
+        padding: 13px 14px;
+      }
     }
   </style>
 </head>
 <body>
-  <main class="card">
-    <img class="avatar" src="1.png" alt="Олег Борзый">
-    <h1 class="name">Олег Борзый</h1>
-    <p class="tag">@lua.spy</p>
-    <a class="btn" href="https://discord.gg/wqxnnNfjZ5" target="_blank" rel="noopener noreferrer">
-      <img src="https://cdn.simpleicons.org/discord/000000" alt="">
-      <span>M5WARE</span>
-    </a>
+  <main class="wrap">
+    <section class="card">
+      <img class="avatar" src="1.png" alt="Олег Борзый">
+      <h1 class="name">Олег Борзый</h1>
+      <p class="tag">@lua.spy</p>
+      <a class="btn" href="https://discord.gg/wqxnnNfjZ5" target="_blank" rel="noopener noreferrer">
+        <img src="https://cdn.simpleicons.org/discord/000000" alt="">
+        <span>M5WARE</span>
+      </a>
+    </section>
+
+    <section class="price">
+      <h2 class="price-title">PRICE</h2>
+      <div class="price-list">
+        <div class="price-item">
+          <span class="price-name">Luau Script</span>
+          <span class="price-cost">2$</span>
+        </div>
+        <div class="price-item">
+          <span class="price-name">War Tycoon Ban</span>
+          <span class="price-cost">1.5$</span>
+        </div>
+      </div>
+    </section>
   </main>
 </body>
 </html>
