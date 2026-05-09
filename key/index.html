@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buy Key</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #eaffea;
+      background-color: #03140d;
+      background-image:
+        linear-gradient(rgba(24, 96, 59, 0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(24, 96, 59, 0.35) 1px, transparent 1px);
+      background-size: 42px 42px;
+      animation: gridMove 9s linear infinite;
+      overflow-x: hidden;
+      padding: 24px;
+    }
+
+    @keyframes gridMove {
+      from {
+        background-position: 0 0, 0 0;
+      }
+
+      to {
+        background-position: 42px 42px, 42px 42px;
+      }
+    }
+
+    @keyframes floatBox {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0.18;
+      }
+
+      50% {
+        transform: translateY(-26px) rotate(12deg);
+        opacity: 0.42;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.08);
+      }
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at center, rgba(33, 150, 89, 0.16), transparent 45%),
+        radial-gradient(circle at bottom, rgba(8, 66, 39, 0.5), transparent 55%);
+      pointer-events: none;
+    }
+
+    .boxes {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .boxes span {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border: 1px solid rgba(109, 255, 156, 0.35);
+      background: rgba(109, 255, 156, 0.04);
+      box-shadow: 0 0 18px rgba(109, 255, 156, 0.18);
+      animation: floatBox 5s ease-in-out infinite;
+    }
+
+    .boxes span:nth-child(1) {
+      top: 15%;
+      left: 10%;
+    }
+
+    .boxes span:nth-child(2) {
+      top: 70%;
+      left: 18%;
+      width: 24px;
+      height: 24px;
+      animation-delay: 1s;
+    }
+
+    .boxes span:nth-child(3) {
+      top: 22%;
+      right: 12%;
+      width: 22px;
+      height: 22px;
+      animation-delay: 2s;
+    }
+
+    .boxes span:nth-child(4) {
+      bottom: 14%;
+      right: 18%;
+      animation-delay: 0.6s;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      width: min(94vw, 820px);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 20px;
+      border: 1px solid rgba(88, 255, 159, 0.18);
+      border-radius: 24px;
+      background: rgba(3, 23, 14, 0.62);
+      box-shadow:
+        0 0 45px rgba(25, 145, 82, 0.18),
+        inset 0 0 25px rgba(44, 255, 142, 0.04);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #6dff9c;
+      border-radius: 14px;
+      background: rgba(109, 255, 156, 0.09);
+      box-shadow: inset 0 0 16px rgba(109, 255, 156, 0.06);
+    }
+
+    .brand-icon svg {
+      width: 23px;
+      height: 23px;
+    }
+
+    .back {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      text-decoration: none;
+      color: rgba(234, 255, 234, 0.84);
+      border: 1px solid rgba(116, 255, 177, 0.18);
+      border-radius: 14px;
+      background: rgba(6, 36, 22, 0.6);
+      font-size: 14px;
+      font-weight: 800;
+      transition: transform 0.22s ease, color 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+    }
+
+    .back:hover {
+      transform: translateY(-3px);
+      color: #ffffff;
+      border-color: rgba(109, 255, 156, 0.48);
+      background: rgba(10, 52, 31, 0.78);
+    }
+
+    .hero {
+      padding: 34px 28px;
+      text-align: center;
+      border: 1px solid rgba(88, 255, 159, 0.18);
+      border-radius: 28px;
+      background: rgba(3, 23, 14, 0.62);
+      box-shadow:
+        0 0 45px rgba(25, 145, 82, 0.18),
+        inset 0 0 25px rgba(44, 255, 142, 0.04);
+      backdrop-filter: blur(14px);
+    }
+
+    .title {
+      font-size: clamp(34px, 7vw, 58px);
+      font-weight: 900;
+      letter-spacing: 0.4px;
+      margin-bottom: 10px;
+      text-shadow: 0 0 24px rgba(111, 255, 172, 0.32);
+    }
+
+    .subtitle {
+      color: rgba(210, 255, 224, 0.72);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .plans {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+
+    .plan {
+      position: relative;
+      padding: 26px;
+      border: 1px solid rgba(88, 255, 159, 0.18);
+      border-radius: 28px;
+      background: rgba(3, 23, 14, 0.62);
+      box-shadow:
+        0 0 45px rgba(25, 145, 82, 0.18),
+        inset 0 0 25px rgba(44, 255, 142, 0.04);
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+      transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease, background 0.28s ease;
+    }
+
+    .plan::before {
+      content: "";
+      position: absolute;
+      inset: -80px -80px auto auto;
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      background: rgba(109, 255, 156, 0.1);
+      filter: blur(4px);
+      transition: transform 0.28s ease, opacity 0.28s ease;
+    }
+
+    .plan:hover {
+      transform: translateY(-8px) scale(1.02);
+      border-color: rgba(109, 255, 156, 0.48);
+      background: rgba(5, 31, 19, 0.74);
+      box-shadow:
+        0 0 70px rgba(44, 255, 142, 0.28),
+        inset 0 0 28px rgba(44, 255, 142, 0.07);
+    }
+
+    .plan:hover::before {
+      transform: scale(1.22);
+      opacity: 1;
+    }
+
+    .plan-head {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .plan-icon {
+      width: 48px;
+      height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #6dff9c;
+      border-radius: 16px;
+      background: rgba(109, 255, 156, 0.09);
+      box-shadow: inset 0 0 16px rgba(109, 255, 156, 0.06);
+      transition: transform 0.24s ease, color 0.24s ease, background 0.24s ease;
+    }
+
+    .plan-icon svg {
+      width: 25px;
+      height: 25px;
+    }
+
+    .plan:hover .plan-icon {
+      transform: rotate(-8deg) scale(1.1);
+      color: #caffda;
+      background: rgba(109, 255, 156, 0.16);
+    }
+
+    .plan-name {
+      font-size: 21px;
+      font-weight: 900;
+    }
+
+    .price {
+      position: relative;
+      font-size: 46px;
+      font-weight: 900;
+      color: #6dff9c;
+      margin-bottom: 8px;
+      text-shadow: 0 0 20px rgba(109, 255, 156, 0.26);
+      transition: transform 0.24s ease, color 0.24s ease;
+    }
+
+    .plan:hover .price {
+      transform: scale(1.05);
+      color: #b7ffd0;
+    }
+
+    .desc {
+      position: relative;
+      color: rgba(210, 255, 224, 0.7);
+      font-size: 15px;
+      line-height: 1.45;
+      margin-bottom: 24px;
+    }
+
+    .buy {
+      position: relative;
+      width: 100%;
+      min-height: 54px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+      color: #04110b;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #6dff9c, #20c76a);
+      box-shadow:
+        0 12px 28px rgba(32, 199, 106, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+    }
+
+    .buy:hover {
+      transform: translateY(-4px) scale(1.03);
+      filter: brightness(1.1);
+      box-shadow:
+        0 18px 42px rgba(32, 199, 106, 0.44),
+        inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    }
+
+    .buy:hover svg {
+      animation: pulse 0.55s ease infinite;
+    }
+
+    .buy svg {
+      width: 23px;
+      height: 23px;
+    }
+
+    @media (max-width: 720px) {
+      .plans {
+        grid-template-columns: 1fr;
+      }
+
+      .top {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .back {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="boxes">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+
+  <main class="wrap">
+    <header class="top">
+      <div class="brand">
+        <span class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.59 13.41 12 22l-9-9V3h10l7.59 7.59a2 2 0 0 1 0 2.82Z"/>
+            <path d="M7 7h.01"/>
+          </svg>
+        </span>
+        <span>M5WARE KEY</span>
+      </div>
+      <a class="back" href="/">Back to profile</a>
+    </header>
+
+    <section class="hero">
+      <h1 class="title">Buy Key</h1>
+      <p class="subtitle">Choose your access plan and open Discord to buy a key.</p>
+    </section>
+
+    <section class="plans">
+      <article class="plan">
+        <div class="plan-head">
+          <span class="plan-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <path d="M16 2v4"/>
+              <path d="M8 2v4"/>
+              <path d="M3 10h18"/>
+            </svg>
+          </span>
+          <h2 class="plan-name">30 Days</h2>
+        </div>
+        <div class="price">$0.8</div>
+        <p class="desc">Temporary access for 30 days.</p>
+        <a class="buy" href="https://discord.gg/wqxnnNfjZ5" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M20.317 4.369A19.791 19.791 0 0 0 15.37 2.85a13.889 13.889 0 0 0-.632 1.304 18.27 18.27 0 0 0-5.476 0A13.889 13.889 0 0 0 8.63 2.85a19.736 19.736 0 0 0-4.947 1.519C.549 9.001-.302 13.52.122 17.974a19.93 19.93 0 0 0 6.073 3.071 14.65 14.65 0 0 0 1.302-2.112 12.93 12.93 0 0 1-2.048-.987c.172-.126.34-.257.502-.391a14.265 14.265 0 0 0 12.098 0c.164.134.332.265.502.391a12.84 12.84 0 0 1-2.052.988 14.57 14.57 0 0 0 1.302 2.111 19.895 19.895 0 0 0 6.077-3.071c.5-5.177-.838-9.654-3.56-13.605ZM8.02 15.23c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.956 2.419-2.157 2.419Zm7.96 0c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.947 2.419-2.157 2.419Z"/>
+          </svg>
+          <span>Buy 30 Days</span>
+        </a>
+      </article>
+
+      <article class="plan">
+        <div class="plan-head">
+          <span class="plan-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3 2 8l10 5 10-5-10-5Z"/>
+              <path d="m2 17 10 5 10-5"/>
+              <path d="m2 12 10 5 10-5"/>
+            </svg>
+          </span>
+          <h2 class="plan-name">Lifetime</h2>
+        </div>
+        <div class="price">$3.99</div>
+        <p class="desc">Permanent access with one-time payment.</p>
+        <a class="buy" href="https://discord.gg/wqxnnNfjZ5" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M20.317 4.369A19.791 19.791 0 0 0 15.37 2.85a13.889 13.889 0 0 0-.632 1.304 18.27 18.27 0 0 0-5.476 0A13.889 13.889 0 0 0 8.63 2.85a19.736 19.736 0 0 0-4.947 1.519C.549 9.001-.302 13.52.122 17.974a19.93 19.93 0 0 0 6.073 3.071 14.65 14.65 0 0 0 1.302-2.112 12.93 12.93 0 0 1-2.048-.987c.172-.126.34-.257.502-.391a14.265 14.265 0 0 0 12.098 0c.164.134.332.265.502.391a12.84 12.84 0 0 1-2.052.988 14.57 14.57 0 0 0 1.302 2.111 19.895 19.895 0 0 0 6.077-3.071c.5-5.177-.838-9.654-3.56-13.605ZM8.02 15.23c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.956 2.419-2.157 2.419Zm7.96 0c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.947 2.419-2.157 2.419Z"/>
+          </svg>
+          <span>Buy Lifetime</span>
+        </a>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
