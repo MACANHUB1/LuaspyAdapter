@@ -1,12 +1,12 @@
 const ADMIN_USERNAME = "lua.spy";
 
-function json(data, status = 200, extraHeaders = {}) {
+function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
-      ...extraHeaders
+      ...headers
     }
   });
 }
@@ -35,6 +35,10 @@ function getCookie(req, name) {
 }
 
 function setCookie(name, value, maxAge) {
+  return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; Secure; SameSite=Lax`;
+}
+
+function setHttpCookie(name, value, maxAge) {
   return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`;
 }
 
@@ -107,6 +111,7 @@ function makeThread(item, plan) {
 function parseThread(thread) {
   const v = String(thread || "key").toLowerCase();
 
+  if (v === "anonymous") return { item: "anonymous", plan: "", title: "Anonymous Message" };
   if (v === "key:30d") return { item: "key", plan: "30d", title: "Key · 30 Days" };
   if (v === "key:lifetime") return { item: "key", plan: "lifetime", title: "Key · Lifetime" };
   if (v === "script") return { item: "script", plan: "", title: "Luau Script" };
@@ -137,6 +142,12 @@ async function setupDb(env) {
   await env.DB.prepare(
     "CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(username, thread, id)"
   ).run();
+}
+
+function getAnon(req) {
+  const raw = getCookie(req, "anon");
+  if (raw && raw.startsWith("anon_") && raw.length <= 80) return raw;
+  return `anon_${randomToken(18)}`;
 }
 
 async function getUser(req, env) {
@@ -177,7 +188,7 @@ async function authLogin(req, env) {
   auth.searchParams.set("state", state);
 
   return redirect(auth.toString(), {
-    "set-cookie": setCookie("oauth_state", stateToken, 600)
+    "set-cookie": setHttpCookie("oauth_state", stateToken, 600)
   });
 }
 
@@ -260,7 +271,7 @@ async function authCallback(req, env) {
   const headers = new Headers();
   headers.set("location", safeNext(state.next));
   headers.append("set-cookie", clearCookie("oauth_state"));
-  headers.append("set-cookie", setCookie("session", session, 2592000));
+  headers.append("set-cookie", setHttpCookie("session", session, 2592000));
 
   return new Response(null, {
     status: 302,
@@ -284,6 +295,56 @@ async function authLogout(req, env) {
 
   return json({ ok: true }, 200, {
     "set-cookie": clearCookie("session")
+  });
+}
+
+async function anonMessagesGet(req, env) {
+  await setupDb(env);
+
+  const anon = getAnon(req);
+
+  const { results } = await env.DB.prepare(
+    "SELECT id, username, thread, body, from_admin, created_at FROM messages WHERE username = ? AND thread = ? ORDER BY id ASC LIMIT 300"
+  ).bind(anon, "anonymous").all();
+
+  return json({
+    anon,
+    thread: "anonymous",
+    meta: parseThread("anonymous"),
+    messages: results || []
+  }, 200, {
+    "set-cookie": setCookie("anon", anon, 2592000)
+  });
+}
+
+async function anonMessagesPost(req, env) {
+  await setupDb(env);
+
+  let data;
+
+  try {
+    data = await req.json();
+  } catch {
+    return json({ error: "bad_json" }, 400);
+  }
+
+  const body = String(data.body || "").trim().slice(0, 800);
+
+  if (!body) return json({ error: "empty_message" }, 400);
+
+  const anon = getAnon(req);
+
+  await env.DB.prepare(
+    "INSERT INTO messages (username, thread, body, from_admin, created_at) VALUES (?, ?, ?, ?, ?)"
+  ).bind(anon, "anonymous", body, 0, new Date().toISOString()).run();
+
+  return json({
+    ok: true,
+    anon,
+    thread: "anonymous",
+    meta: parseThread("anonymous")
+  }, 200, {
+    "set-cookie": setCookie("anon", anon, 2592000)
   });
 }
 
@@ -365,6 +426,7 @@ async function chatThreads(req, env) {
   return json({
     threads: (results || []).map(t => ({
       ...t,
+      display: t.thread === "anonymous" ? "Anonymous" : t.username,
       meta: parseThread(t.thread)
     }))
   });
@@ -375,6 +437,9 @@ async function handleApi(req, env, path) {
   if (path === "/api/auth/callback" && req.method === "GET") return authCallback(req, env);
   if (path === "/api/auth/me" && req.method === "GET") return authMe(req, env);
   if (path === "/api/auth/logout" && req.method === "POST") return authLogout(req, env);
+
+  if (path === "/api/anon/messages" && req.method === "GET") return anonMessagesGet(req, env);
+  if (path === "/api/anon/messages" && req.method === "POST") return anonMessagesPost(req, env);
 
   if (path === "/api/chat/messages" && req.method === "GET") return chatMessagesGet(req, env);
   if (path === "/api/chat/messages" && req.method === "POST") return chatMessagesPost(req, env);
