@@ -37,6 +37,28 @@
       }
     }
 
+    @keyframes floatBox {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0.18;
+      }
+
+      50% {
+        transform: translateY(-26px) rotate(12deg);
+        opacity: 0.42;
+      }
+    }
+
+    @keyframes iconBounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-3px);
+      }
+    }
+
     body::before {
       content: "";
       position: fixed;
@@ -45,6 +67,50 @@
         radial-gradient(circle at center, rgba(33, 150, 89, 0.16), transparent 45%),
         radial-gradient(circle at bottom, rgba(8, 66, 39, 0.5), transparent 55%);
       pointer-events: none;
+    }
+
+    .boxes {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .boxes span {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border: 1px solid rgba(109, 255, 156, 0.35);
+      background: rgba(109, 255, 156, 0.04);
+      box-shadow: 0 0 18px rgba(109, 255, 156, 0.18);
+      animation: floatBox 5s ease-in-out infinite;
+    }
+
+    .boxes span:nth-child(1) {
+      top: 16%;
+      left: 12%;
+    }
+
+    .boxes span:nth-child(2) {
+      top: 72%;
+      left: 18%;
+      width: 24px;
+      height: 24px;
+      animation-delay: 1.2s;
+    }
+
+    .boxes span:nth-child(3) {
+      top: 22%;
+      right: 13%;
+      width: 22px;
+      height: 22px;
+      animation-delay: 2s;
+    }
+
+    .boxes span:nth-child(4) {
+      right: 19%;
+      bottom: 14%;
+      animation-delay: 0.7s;
     }
 
     .wrap {
@@ -65,6 +131,17 @@
         0 0 45px rgba(25, 145, 82, 0.18),
         inset 0 0 25px rgba(44, 255, 142, 0.04);
       backdrop-filter: blur(14px);
+      transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease, background 0.28s ease;
+    }
+
+    .card:hover,
+    .price:hover {
+      transform: translateY(-6px);
+      border-color: rgba(109, 255, 156, 0.42);
+      background: rgba(5, 31, 19, 0.74);
+      box-shadow:
+        0 0 65px rgba(44, 255, 142, 0.26),
+        inset 0 0 28px rgba(44, 255, 142, 0.07);
     }
 
     .card {
@@ -85,6 +162,15 @@
         0 0 32px rgba(72, 255, 148, 0.34),
         0 0 0 10px rgba(50, 255, 136, 0.05);
       margin-bottom: 24px;
+      transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+    }
+
+    .card:hover .avatar {
+      transform: scale(1.06) rotate(2deg);
+      border-color: rgba(157, 255, 195, 0.95);
+      box-shadow:
+        0 0 44px rgba(72, 255, 148, 0.5),
+        0 0 0 12px rgba(50, 255, 136, 0.08);
     }
 
     .name {
@@ -93,12 +179,23 @@
       letter-spacing: 0.3px;
       margin-bottom: 8px;
       text-shadow: 0 0 18px rgba(111, 255, 172, 0.28);
+      transition: transform 0.28s ease, color 0.28s ease;
+    }
+
+    .card:hover .name {
+      transform: scale(1.03);
+      color: #ffffff;
     }
 
     .tag {
       font-size: 17px;
       color: rgba(210, 255, 224, 0.68);
       margin-bottom: 28px;
+      transition: color 0.28s ease;
+    }
+
+    .card:hover .tag {
+      color: rgba(210, 255, 224, 0.9);
     }
 
     .btn {
@@ -119,25 +216,29 @@
       box-shadow:
         0 12px 28px rgba(32, 199, 106, 0.28),
         inset 0 1px 0 rgba(255, 255, 255, 0.35);
-      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
     }
 
     .btn:hover {
-      transform: translateY(-3px);
-      filter: brightness(1.08);
+      transform: translateY(-4px) scale(1.04);
+      filter: brightness(1.1);
       box-shadow:
-        0 16px 36px rgba(32, 199, 106, 0.38),
-        inset 0 1px 0 rgba(255, 255, 255, 0.42);
+        0 18px 42px rgba(32, 199, 106, 0.44),
+        inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    }
+
+    .btn:hover .icon {
+      animation: iconBounce 0.55s ease infinite;
     }
 
     .btn:active {
-      transform: translateY(0);
+      transform: translateY(0) scale(0.98);
     }
 
-    .btn img {
-      width: 23px;
-      height: 23px;
-      filter: brightness(0);
+    .icon {
+      width: 24px;
+      height: 24px;
+      flex: 0 0 24px;
     }
 
     .price {
@@ -145,6 +246,10 @@
     }
 
     .price-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
       font-size: 22px;
       font-weight: 800;
       margin-bottom: 16px;
@@ -167,12 +272,56 @@
       border: 1px solid rgba(116, 255, 177, 0.14);
       border-radius: 16px;
       background: rgba(6, 36, 22, 0.55);
+      transition: transform 0.24s ease, border-color 0.24s ease, background 0.24s ease, box-shadow 0.24s ease;
+    }
+
+    .price-item:hover {
+      transform: translateX(6px) scale(1.02);
+      border-color: rgba(109, 255, 156, 0.44);
+      background: rgba(10, 52, 31, 0.72);
+      box-shadow: 0 10px 26px rgba(32, 199, 106, 0.14);
+    }
+
+    .price-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .price-icon {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #6dff9c;
+      border-radius: 12px;
+      background: rgba(109, 255, 156, 0.09);
+      box-shadow: inset 0 0 16px rgba(109, 255, 156, 0.06);
+      transition: transform 0.24s ease, color 0.24s ease, background 0.24s ease;
+    }
+
+    .price-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .price-item:hover .price-icon {
+      transform: rotate(-8deg) scale(1.12);
+      color: #caffda;
+      background: rgba(109, 255, 156, 0.16);
     }
 
     .price-name {
       font-size: 16px;
       font-weight: 700;
       color: rgba(234, 255, 234, 0.92);
+      transition: color 0.24s ease;
+    }
+
+    .price-item:hover .price-name {
+      color: #ffffff;
     }
 
     .price-cost {
@@ -180,6 +329,12 @@
       font-weight: 900;
       color: #6dff9c;
       white-space: nowrap;
+      transition: transform 0.24s ease, color 0.24s ease;
+    }
+
+    .price-item:hover .price-cost {
+      transform: scale(1.12);
+      color: #b7ffd0;
     }
 
     @media (max-width: 420px) {
@@ -209,26 +364,60 @@
   </style>
 </head>
 <body>
+  <div class="boxes">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+
   <main class="wrap">
     <section class="card">
       <img class="avatar" src="1.png" alt="Олег Борзый">
       <h1 class="name">Олег Борзый</h1>
       <p class="tag">@lua.spy</p>
       <a class="btn" href="https://discord.gg/wqxnnNfjZ5" target="_blank" rel="noopener noreferrer">
-        <img src="https://cdn.simpleicons.org/discord/000000" alt="">
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M20.317 4.369A19.791 19.791 0 0 0 15.37 2.85a13.889 13.889 0 0 0-.632 1.304 18.27 18.27 0 0 0-5.476 0A13.889 13.889 0 0 0 8.63 2.85a19.736 19.736 0 0 0-4.947 1.519C.549 9.001-.302 13.52.122 17.974a19.93 19.93 0 0 0 6.073 3.071 14.65 14.65 0 0 0 1.302-2.112 12.93 12.93 0 0 1-2.048-.987c.172-.126.34-.257.502-.391a14.265 14.265 0 0 0 12.098 0c.164.134.332.265.502.391a12.84 12.84 0 0 1-2.052.988 14.57 14.57 0 0 0 1.302 2.111 19.895 19.895 0 0 0 6.077-3.071c.5-5.177-.838-9.654-3.56-13.605ZM8.02 15.23c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.956 2.419-2.157 2.419Zm7.96 0c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.947 2.419-2.157 2.419Z"/>
+        </svg>
         <span>M5WARE</span>
       </a>
     </section>
 
     <section class="price">
-      <h2 class="price-title">PRICE</h2>
+      <h2 class="price-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.59 13.41 12 22l-9-9V3h10l7.59 7.59a2 2 0 0 1 0 2.82Z"/>
+          <path d="M7 7h.01"/>
+        </svg>
+        PRICE
+      </h2>
+
       <div class="price-list">
         <div class="price-item">
-          <span class="price-name">Luau Script</span>
+          <div class="price-left">
+            <span class="price-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m8 9-4 3 4 3"/>
+                <path d="m16 9 4 3-4 3"/>
+                <path d="m14 5-4 14"/>
+              </svg>
+            </span>
+            <span class="price-name">Luau Script</span>
+          </div>
           <span class="price-cost">2$</span>
         </div>
+
         <div class="price-item">
-          <span class="price-name">War Tycoon Ban</span>
+          <div class="price-left">
+            <span class="price-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+                <path d="m4.5 4.5 15 15"/>
+              </svg>
+            </span>
+            <span class="price-name">War Tycoon Ban</span>
+          </div>
           <span class="price-cost">1.5$</span>
         </div>
       </div>
