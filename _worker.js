@@ -77,13 +77,14 @@ function safeNext(value) {
 }
 
 function cleanItem(value) {
-  const v = String(value || "key").toLowerCase();
+  const v = String(value || "chat").toLowerCase();
 
+  if (v === "chat") return "chat";
   if (v === "key") return "key";
   if (v === "script") return "script";
   if (v === "ban") return "ban";
 
-  return "key";
+  return "chat";
 }
 
 function cleanPlan(value) {
@@ -105,39 +106,32 @@ function makeThread(item, plan) {
 }
 
 function parseThread(thread) {
-  const v = String(thread || "key").toLowerCase();
+  const v = String(thread || "chat").toLowerCase();
 
   if (v === "anonymous") return { item: "anonymous", plan: "", title: "Anonymous Message" };
+  if (v === "chat") return { item: "chat", plan: "", title: "Chat" };
   if (v === "key:30d") return { item: "key", plan: "30d", title: "Key · 30 Days" };
   if (v === "key:lifetime") return { item: "key", plan: "lifetime", title: "Key · Lifetime" };
+  if (v === "key") return { item: "key", plan: "", title: "Key" };
   if (v === "script") return { item: "script", plan: "", title: "Luau Script" };
   if (v === "ban") return { item: "ban", plan: "", title: "War Tycoon Ban" };
 
-  return { item: "key", plan: "", title: "Key" };
+  return { item: "chat", plan: "", title: "Chat" };
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function setupDb(env) {
   if (!env.DB) throw new Error("D1 binding DB is missing");
 
-  await env.DB.prepare(
-    "CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, avatar TEXT, updated_at TEXT NOT NULL)"
-  ).run();
-
-  await env.DB.prepare(
-    "CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, username TEXT NOT NULL, created_at TEXT NOT NULL)"
-  ).run();
-
-  await env.DB.prepare(
-    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, thread TEXT NOT NULL, body TEXT NOT NULL, from_admin INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)"
-  ).run();
-
-  await env.DB.prepare(
-    "CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token)"
-  ).run();
-
-  await env.DB.prepare(
-    "CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(username, thread, id)"
-  ).run();
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, avatar TEXT, updated_at TEXT NOT NULL)").run();
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, username TEXT NOT NULL, created_at TEXT NOT NULL)").run();
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, thread TEXT NOT NULL, body TEXT NOT NULL, from_admin INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)").run();
+  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token)").run();
+  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(username, thread, id)").run();
+  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_messages_id ON messages(id)").run();
 }
 
 function getAnon(req) {
@@ -296,89 +290,96 @@ async function authLogout(req, env) {
   });
 }
 
-async function anonMessagesGet(req, env) {
-  await setupDb(env);
-
-  const anon = getAnon(req);
-
+async function getMessages(env, username, thread) {
   const { results } = await env.DB.prepare(
     "SELECT id, username, thread, body, from_admin, created_at FROM messages WHERE username = ? AND thread = ? ORDER BY id ASC LIMIT 500"
-  ).bind(anon, "anonymous").all();
+  ).bind(username, thread).all();
 
-  return json({
-    username: anon,
-    thread: "anonymous",
-    meta: parseThread("anonymous"),
-    messages: results || []
-  }, 200, {
-    "set-cookie": setCookie("anon", anon, 2592000)
-  });
+  return results || [];
 }
 
-async function anonMessagesPost(req, env) {
+async function getThreads(env) {
+  const { results } = await env.DB.prepare(
+    "SELECT m.username, m.thread, u.avatar, MAX(m.id) AS last_id, MAX(m.created_at) AS updated_at, (SELECT body FROM messages x WHERE x.username = m.username AND x.thread = m.thread ORDER BY x.id DESC LIMIT 1) AS last_body FROM messages m LEFT JOIN users u ON u.username = m.username GROUP BY m.username, m.thread ORDER BY MAX(m.id) DESC LIMIT 100"
+  ).all();
+
+  return (results || []).map(t => ({
+    ...t,
+    display: t.thread === "anonymous" ? "Anonymous" : t.username,
+    meta: parseThread(t.thread)
+  }));
+}
+
+async function resolveMessageTarget(req, env) {
   await setupDb(env);
-
-  let data;
-
-  try {
-    data = await req.json();
-  } catch {
-    return json({ error: "bad_json" }, 400);
-  }
-
-  const body = String(data.body || "").trim().slice(0, 800);
-
-  if (!body) return json({ error: "empty_message" }, 400);
-
-  const anon = getAnon(req);
-
-  await env.DB.prepare(
-    "INSERT INTO messages (username, thread, body, from_admin, created_at) VALUES (?, ?, ?, ?, ?)"
-  ).bind(anon, "anonymous", body, 0, new Date().toISOString()).run();
-
-  return json({
-    ok: true,
-    username: anon,
-    thread: "anonymous",
-    meta: parseThread("anonymous")
-  }, 200, {
-    "set-cookie": setCookie("anon", anon, 2592000)
-  });
-}
-
-async function chatMessagesGet(req, env) {
-  const user = await getUser(req, env);
-
-  if (!user) return json({ error: "not_logged_in" }, 401);
 
   const url = new URL(req.url);
-  const thread = user.is_admin && url.searchParams.get("thread")
-    ? String(url.searchParams.get("thread"))
-    : makeThread(url.searchParams.get("item"), url.searchParams.get("plan"));
+  const mode = url.searchParams.get("mode");
 
-  const targetUsername = user.is_admin
-    ? cleanUsername(url.searchParams.get("username"))
-    : user.username;
+  if (mode === "anonymous") {
+    const username = getAnon(req);
 
-  if (!targetUsername) return json({ error: "missing_username" }, 400);
+    return {
+      user: null,
+      username,
+      thread: "anonymous",
+      meta: parseThread("anonymous"),
+      setAnon: username
+    };
+  }
 
-  const { results } = await env.DB.prepare(
-    "SELECT id, username, thread, body, from_admin, created_at FROM messages WHERE username = ? AND thread = ? ORDER BY id ASC LIMIT 500"
-  ).bind(targetUsername, thread).all();
-
-  return json({
-    user,
-    username: targetUsername,
-    thread,
-    meta: parseThread(thread),
-    messages: results || []
-  });
-}
-
-async function chatMessagesPost(req, env) {
   const user = await getUser(req, env);
 
-  if (!user) return json({ error: "not_logged_in" }, 401);
+  if (!user) return { error: json({ error: "not_logged_in" }, 401) };
+
+  if (user.is_admin) {
+    const username = String(url.searchParams.get("username") || "").trim();
+    const thread = String(url.searchParams.get("thread") || "").trim();
+
+    if (!username || !thread) return { error: json({ error: "missing_target" }, 400) };
+
+    return {
+      user,
+      username,
+      thread,
+      meta: parseThread(thread)
+    };
+  }
+
+  const thread = makeThread(url.searchParams.get("item"), url.searchParams.get("plan"));
+
+  return {
+    user,
+    username: user.username,
+    thread,
+    meta: parseThread(thread)
+  };
+}
+
+async function messagesGet(req, env) {
+  const target = await resolveMessageTarget(req, env);
+
+  if (target.error) return target.error;
+
+  const messages = await getMessages(env, target.username, target.thread);
+  const headers = {};
+
+  if (target.setAnon) headers["set-cookie"] = setCookie("anon", target.setAnon, 2592000);
+
+  return json({
+    user: target.user,
+    username: target.username,
+    thread: target.thread,
+    meta: target.meta,
+    messages
+  }, 200, headers);
+}
+
+async function messagesPost(req, env) {
+  await setupDb(env);
+
+  const url = new URL(req.url);
+  const mode = url.searchParams.get("mode");
 
   let data;
 
@@ -388,47 +389,189 @@ async function chatMessagesPost(req, env) {
     return json({ error: "bad_json" }, 400);
   }
 
-  const thread = user.is_admin && data.thread
-    ? String(data.thread)
-    : makeThread(data.item, data.plan);
-
-  const targetUsername = user.is_admin
-    ? String(data.username || "").trim()
-    : user.username;
-
   const body = String(data.body || "").trim().slice(0, 800);
 
-  if (!targetUsername) return json({ error: "missing_username" }, 400);
   if (!body) return json({ error: "empty_message" }, 400);
+
+  if (mode === "anonymous" || data.mode === "anonymous") {
+    const username = getAnon(req);
+
+    await env.DB.prepare(
+      "INSERT INTO messages (username, thread, body, from_admin, created_at) VALUES (?, ?, ?, ?, ?)"
+    ).bind(username, "anonymous", body, 0, new Date().toISOString()).run();
+
+    return json({
+      ok: true,
+      username,
+      thread: "anonymous",
+      meta: parseThread("anonymous")
+    }, 200, {
+      "set-cookie": setCookie("anon", username, 2592000)
+    });
+  }
+
+  const user = await getUser(req, env);
+
+  if (!user) return json({ error: "not_logged_in" }, 401);
+
+  const thread = user.is_admin && data.thread ? String(data.thread) : makeThread(data.item, data.plan);
+  const username = user.is_admin ? String(data.username || "").trim() : user.username;
+
+  if (!username || !thread) return json({ error: "missing_target" }, 400);
 
   await env.DB.prepare(
     "INSERT INTO messages (username, thread, body, from_admin, created_at) VALUES (?, ?, ?, ?, ?)"
-  ).bind(targetUsername, thread, body, user.is_admin ? 1 : 0, new Date().toISOString()).run();
+  ).bind(username, thread, body, user.is_admin ? 1 : 0, new Date().toISOString()).run();
 
   return json({
     ok: true,
-    username: targetUsername,
+    username,
     thread,
     meta: parseThread(thread)
   });
 }
 
-async function chatThreads(req, env) {
+async function threadsGet(req, env) {
   const user = await getUser(req, env);
 
   if (!user) return json({ error: "not_logged_in" }, 401);
   if (!user.is_admin) return json({ error: "admin_only" }, 403);
 
-  const { results } = await env.DB.prepare(
-    "SELECT m.username, m.thread, u.avatar, MAX(m.id) AS last_id, MAX(m.created_at) AS updated_at, (SELECT body FROM messages x WHERE x.username = m.username AND x.thread = m.thread ORDER BY x.id DESC LIMIT 1) AS last_body FROM messages m LEFT JOIN users u ON u.username = m.username GROUP BY m.username, m.thread ORDER BY MAX(m.id) DESC LIMIT 100"
-  ).all();
-
   return json({
-    threads: (results || []).map(t => ({
-      ...t,
-      display: t.thread === "anonymous" ? "Anonymous" : t.username,
-      meta: parseThread(t.thread)
-    }))
+    threads: await getThreads(env)
+  });
+}
+
+async function messageDelete(req, env) {
+  const user = await getUser(req, env);
+
+  if (!user) return json({ error: "not_logged_in" }, 401);
+  if (!user.is_admin) return json({ error: "admin_only" }, 403);
+
+  const url = new URL(req.url);
+  const id = Number(url.searchParams.get("id"));
+
+  if (!Number.isInteger(id) || id <= 0) return json({ error: "bad_message_id" }, 400);
+
+  await env.DB.prepare("DELETE FROM messages WHERE id = ?").bind(id).run();
+
+  return json({ ok: true });
+}
+
+async function threadDelete(req, env) {
+  const user = await getUser(req, env);
+
+  if (!user) return json({ error: "not_logged_in" }, 401);
+  if (!user.is_admin) return json({ error: "admin_only" }, 403);
+
+  const url = new URL(req.url);
+  const username = String(url.searchParams.get("username") || "").trim();
+  const thread = String(url.searchParams.get("thread") || "").trim();
+
+  if (!username || !thread) return json({ error: "missing_target" }, 400);
+
+  await env.DB.prepare("DELETE FROM messages WHERE username = ? AND thread = ?").bind(username, thread).run();
+
+  return json({ ok: true });
+}
+
+function sse(data, event = "message") {
+  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+async function liveMessages(req, env) {
+  const target = await resolveMessageTarget(req, env);
+
+  if (target.error) return target.error;
+
+  const encoder = new TextEncoder();
+  const headers = {
+    "content-type": "text/event-stream; charset=utf-8",
+    "cache-control": "no-store, no-transform",
+    "connection": "keep-alive"
+  };
+
+  if (target.setAnon) headers["set-cookie"] = setCookie("anon", target.setAnon, 2592000);
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      let last = "";
+
+      for (let i = 0; i < 120; i++) {
+        try {
+          const messages = await getMessages(env, target.username, target.thread);
+          const payload = {
+            username: target.username,
+            thread: target.thread,
+            meta: target.meta,
+            messages
+          };
+          const now = JSON.stringify(payload);
+
+          if (now !== last) {
+            last = now;
+            controller.enqueue(encoder.encode(sse(payload)));
+          } else {
+            controller.enqueue(encoder.encode(": ping\n\n"));
+          }
+        } catch (err) {
+          controller.enqueue(encoder.encode(sse({ error: String(err && err.message ? err.message : err) }, "error")));
+        }
+
+        await sleep(800);
+      }
+
+      controller.close();
+    }
+  });
+
+  return new Response(stream, {
+    headers
+  });
+}
+
+async function liveThreads(req, env) {
+  const user = await getUser(req, env);
+
+  if (!user) return json({ error: "not_logged_in" }, 401);
+  if (!user.is_admin) return json({ error: "admin_only" }, 403);
+
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      let last = "";
+
+      for (let i = 0; i < 120; i++) {
+        try {
+          const payload = {
+            threads: await getThreads(env)
+          };
+          const now = JSON.stringify(payload);
+
+          if (now !== last) {
+            last = now;
+            controller.enqueue(encoder.encode(sse(payload)));
+          } else {
+            controller.enqueue(encoder.encode(": ping\n\n"));
+          }
+        } catch (err) {
+          controller.enqueue(encoder.encode(sse({ error: String(err && err.message ? err.message : err) }, "error")));
+        }
+
+        await sleep(800);
+      }
+
+      controller.close();
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-store, no-transform",
+      "connection": "keep-alive"
+    }
   });
 }
 
@@ -438,12 +581,15 @@ async function handleApi(req, env, path) {
   if (path === "/api/auth/me" && req.method === "GET") return authMe(req, env);
   if (path === "/api/auth/logout" && req.method === "POST") return authLogout(req, env);
 
-  if (path === "/api/anon/messages" && req.method === "GET") return anonMessagesGet(req, env);
-  if (path === "/api/anon/messages" && req.method === "POST") return anonMessagesPost(req, env);
+  if (path === "/api/messages" && req.method === "GET") return messagesGet(req, env);
+  if (path === "/api/messages" && req.method === "POST") return messagesPost(req, env);
+  if (path === "/api/threads" && req.method === "GET") return threadsGet(req, env);
 
-  if (path === "/api/chat/messages" && req.method === "GET") return chatMessagesGet(req, env);
-  if (path === "/api/chat/messages" && req.method === "POST") return chatMessagesPost(req, env);
-  if (path === "/api/chat/threads" && req.method === "GET") return chatThreads(req, env);
+  if (path === "/api/live/messages" && req.method === "GET") return liveMessages(req, env);
+  if (path === "/api/live/threads" && req.method === "GET") return liveThreads(req, env);
+
+  if (path === "/api/message" && req.method === "DELETE") return messageDelete(req, env);
+  if (path === "/api/thread" && req.method === "DELETE") return threadDelete(req, env);
 
   if (path === "/api/debug" && req.method === "GET") {
     return json({
