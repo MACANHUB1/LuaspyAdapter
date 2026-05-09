@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LuaLearn.com</title>
+  <title>Олег Борзый</title>
   <style>
     * {
       box-sizing: border-box;
@@ -23,11 +23,12 @@
         linear-gradient(rgba(24, 96, 59, 0.35) 1px, transparent 1px),
         linear-gradient(90deg, rgba(24, 96, 59, 0.35) 1px, transparent 1px);
       background-size: 42px 42px;
-      animation: gridMove 9s linear infinite;
+      animation: grid 9s linear infinite;
       overflow-x: hidden;
+      padding: 24px;
     }
 
-    @keyframes gridMove {
+    @keyframes grid {
       from {
         background-position: 0 0, 0 0;
       }
@@ -37,7 +38,7 @@
       }
     }
 
-    @keyframes floatBox {
+    @keyframes float {
       0%, 100% {
         transform: translateY(0) rotate(0deg);
         opacity: 0.18;
@@ -49,7 +50,7 @@
       }
     }
 
-    @keyframes iconBounce {
+    @keyframes bounce {
       0%, 100% {
         transform: translateY(0);
       }
@@ -83,7 +84,7 @@
       border: 1px solid rgba(109, 255, 156, 0.35);
       background: rgba(109, 255, 156, 0.04);
       box-shadow: 0 0 18px rgba(109, 255, 156, 0.18);
-      animation: floatBox 5s ease-in-out infinite;
+      animation: float 5s ease-in-out infinite;
     }
 
     .boxes span:nth-child(1) {
@@ -116,14 +117,14 @@
     .wrap {
       position: relative;
       z-index: 1;
-      width: min(92vw, 420px);
+      width: min(92vw, 430px);
       display: flex;
       flex-direction: column;
       gap: 18px;
     }
 
     .card,
-    .price {
+    .panel {
       border: 1px solid rgba(88, 255, 159, 0.18);
       border-radius: 28px;
       background: rgba(3, 23, 14, 0.62);
@@ -135,13 +136,54 @@
     }
 
     .card:hover,
-    .price:hover {
+    .panel:hover {
       transform: translateY(-6px);
       border-color: rgba(109, 255, 156, 0.42);
       background: rgba(5, 31, 19, 0.74);
       box-shadow:
         0 0 65px rgba(44, 255, 142, 0.26),
         inset 0 0 28px rgba(44, 255, 142, 0.07);
+    }
+
+    .auth {
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .auth-user {
+      min-width: 0;
+      font-size: 13px;
+      color: rgba(210, 255, 224, 0.74);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .auth-btn {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(116, 255, 177, 0.2);
+      border-radius: 13px;
+      padding: 0 13px;
+      color: #eaffea;
+      background: rgba(6, 36, 22, 0.7);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease, color 0.22s ease;
+    }
+
+    .auth-btn:hover {
+      transform: translateY(-2px);
+      color: #ffffff;
+      border-color: rgba(109, 255, 156, 0.5);
+      background: rgba(10, 52, 31, 0.86);
     }
 
     .card {
@@ -175,7 +217,7 @@
 
     .name {
       font-size: 30px;
-      font-weight: 800;
+      font-weight: 900;
       letter-spacing: 0.3px;
       margin-bottom: 8px;
       text-shadow: 0 0 18px rgba(111, 255, 172, 0.28);
@@ -190,7 +232,7 @@
     .tag {
       font-size: 17px;
       color: rgba(210, 255, 224, 0.68);
-      margin-bottom: 28px;
+      margin-bottom: 26px;
       transition: color 0.28s ease;
     }
 
@@ -198,9 +240,29 @@
       color: rgba(210, 255, 224, 0.9);
     }
 
+    .privacy {
+      width: 100%;
+      margin-bottom: 18px;
+      padding: 12px 14px;
+      border: 1px solid rgba(116, 255, 177, 0.12);
+      border-radius: 16px;
+      background: rgba(6, 36, 22, 0.55);
+      color: rgba(210, 255, 224, 0.76);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .actions {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
     .btn {
       width: 100%;
-      max-width: 240px;
+      max-width: 250px;
       min-height: 54px;
       display: inline-flex;
       align-items: center;
@@ -208,15 +270,22 @@
       gap: 12px;
       text-decoration: none;
       font-size: 16px;
-      font-weight: 800;
-      letter-spacing: 0.6px;
+      font-weight: 900;
+      letter-spacing: 0.45px;
       color: #04110b;
       border-radius: 16px;
       background: linear-gradient(135deg, #6dff9c, #20c76a);
       box-shadow:
         0 12px 28px rgba(32, 199, 106, 0.28),
         inset 0 1px 0 rgba(255, 255, 255, 0.35);
-      transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease, border-color 0.22s ease, background 0.22s ease, color 0.22s ease;
+    }
+
+    .btn.alt {
+      color: #eaffea;
+      border: 1px solid rgba(116, 255, 177, 0.22);
+      background: rgba(6, 36, 22, 0.7);
+      box-shadow: inset 0 0 18px rgba(109, 255, 156, 0.04);
     }
 
     .btn:hover {
@@ -227,8 +296,14 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.45);
     }
 
+    .btn.alt:hover {
+      color: #ffffff;
+      border-color: rgba(109, 255, 156, 0.5);
+      background: rgba(10, 52, 31, 0.86);
+    }
+
     .btn:hover .icon {
-      animation: iconBounce 0.55s ease infinite;
+      animation: bounce 0.55s ease infinite;
     }
 
     .btn:active {
@@ -241,29 +316,29 @@
       flex: 0 0 24px;
     }
 
-    .price {
+    .panel {
       padding: 24px;
     }
 
-    .price-title {
+    .panel-title {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
       font-size: 22px;
-      font-weight: 800;
+      font-weight: 900;
       margin-bottom: 16px;
       text-align: center;
       text-shadow: 0 0 18px rgba(111, 255, 172, 0.22);
     }
 
-    .price-list {
+    .list {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
 
-    .price-item {
+    .item {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -272,24 +347,26 @@
       border: 1px solid rgba(116, 255, 177, 0.14);
       border-radius: 16px;
       background: rgba(6, 36, 22, 0.55);
+      color: inherit;
+      text-decoration: none;
       transition: transform 0.24s ease, border-color 0.24s ease, background 0.24s ease, box-shadow 0.24s ease;
     }
 
-    .price-item:hover {
+    .item:hover {
       transform: translateX(6px) scale(1.02);
       border-color: rgba(109, 255, 156, 0.44);
       background: rgba(10, 52, 31, 0.72);
       box-shadow: 0 10px 26px rgba(32, 199, 106, 0.14);
     }
 
-    .price-left {
+    .left {
       display: flex;
       align-items: center;
       gap: 12px;
       min-width: 0;
     }
 
-    .price-icon {
+    .mini {
       width: 34px;
       height: 34px;
       display: inline-flex;
@@ -302,29 +379,29 @@
       transition: transform 0.24s ease, color 0.24s ease, background 0.24s ease;
     }
 
-    .price-icon svg {
+    .mini svg {
       width: 20px;
       height: 20px;
     }
 
-    .price-item:hover .price-icon {
+    .item:hover .mini {
       transform: rotate(-8deg) scale(1.12);
       color: #caffda;
       background: rgba(109, 255, 156, 0.16);
     }
 
-    .price-name {
+    .item-name {
       font-size: 16px;
-      font-weight: 700;
+      font-weight: 800;
       color: rgba(234, 255, 234, 0.92);
       transition: color 0.24s ease;
     }
 
-    .price-item:hover .price-name {
+    .item:hover .item-name {
       color: #ffffff;
     }
 
-    .price-cost {
+    .cost {
       font-size: 17px;
       font-weight: 900;
       color: #6dff9c;
@@ -332,7 +409,7 @@
       transition: transform 0.24s ease, color 0.24s ease;
     }
 
-    .price-item:hover .price-cost {
+    .item:hover .cost {
       transform: scale(1.12);
       color: #b7ffd0;
     }
@@ -343,7 +420,7 @@
         border-radius: 24px;
       }
 
-      .price {
+      .panel {
         padding: 20px;
         border-radius: 24px;
       }
@@ -357,7 +434,7 @@
         font-size: 26px;
       }
 
-      .price-item {
+      .item {
         padding: 13px 14px;
       }
     }
@@ -372,28 +449,45 @@
   </div>
 
   <main class="wrap">
+    <section class="auth panel">
+      <div class="auth-user" id="authText">Checking login...</div>
+      <a class="auth-btn" id="authBtn" href="/api/auth/login?next=/">Login</a>
+    </section>
+
     <section class="card">
       <img class="avatar" src="1.png" alt="Олег Борзый">
       <h1 class="name">Олег Борзый</h1>
       <p class="tag">@lua.spy</p>
-      <a class="btn" href="https://discord.gg/wqxnnNfjZ5" target="_blank" rel="noopener noreferrer">
-        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M20.317 4.369A19.791 19.791 0 0 0 15.37 2.85a13.889 13.889 0 0 0-.632 1.304 18.27 18.27 0 0 0-5.476 0A13.889 13.889 0 0 0 8.63 2.85a19.736 19.736 0 0 0-4.947 1.519C.549 9.001-.302 13.52.122 17.974a19.93 19.93 0 0 0 6.073 3.071 14.65 14.65 0 0 0 1.302-2.112 12.93 12.93 0 0 1-2.048-.987c.172-.126.34-.257.502-.391a14.265 14.265 0 0 0 12.098 0c.164.134.332.265.502.391a12.84 12.84 0 0 1-2.052.988 14.57 14.57 0 0 0 1.302 2.111 19.895 19.895 0 0 0 6.077-3.071c.5-5.177-.838-9.654-3.56-13.605ZM8.02 15.23c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.956 2.419-2.157 2.419Zm7.96 0c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.947 2.419-2.157 2.419Z"/>
-        </svg>
-        <span>M5WARE</span>
-      </a>
+
+      <div class="privacy">Discord login only. No password, no email request, no public profile data except Discord username.</div>
+
+      <div class="actions">
+        <a class="btn" href="https://discord.gg/wqxnnNfjZ5" target="_blank" rel="noopener noreferrer">
+          <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M20.317 4.369A19.791 19.791 0 0 0 15.37 2.85a13.889 13.889 0 0 0-.632 1.304 18.27 18.27 0 0 0-5.476 0A13.889 13.889 0 0 0 8.63 2.85a19.736 19.736 0 0 0-4.947 1.519C.549 9.001-.302 13.52.122 17.974a19.93 19.93 0 0 0 6.073 3.071 14.65 14.65 0 0 0 1.302-2.112 12.93 12.93 0 0 1-2.048-.987c.172-.126.34-.257.502-.391a14.265 14.265 0 0 0 12.098 0c.164.134.332.265.502.391a12.84 12.84 0 0 1-2.052.988 14.57 14.57 0 0 0 1.302 2.111 19.895 19.895 0 0 0 6.077-3.071c.5-5.177-.838-9.654-3.56-13.605ZM8.02 15.23c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.956 2.419-2.157 2.419Zm7.96 0c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.947 2.419-2.157 2.419Z"/>
+          </svg>
+          <span>M5WARE</span>
+        </a>
+
+        <a class="btn alt" href="/key/">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.59 13.41 12 22l-9-9V3h10l7.59 7.59a2 2 0 0 1 0 2.82Z"/>
+            <path d="M7 7h.01"/>
+          </svg>
+          <span>Key Prices</span>
+        </a>
+
+        <a class="btn alt" href="/chat/?item=key">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+          </svg>
+          <span>Chat Admin</span>
+        </a>
+      </div>
     </section>
 
-    <a class="btn" href="/key">
-  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="M20.59 13.41 12 22l-9-9V3h10l7.59 7.59a2 2 0 0 1 0 2.82Z"/>
-    <path d="M7 7h.01"/>
-  </svg>
-  <span>Buy Key</span>
-</a>
-
-    <section class="price">
-      <h2 class="price-title">
+    <section class="panel">
+      <h2 class="panel-title">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M20.59 13.41 12 22l-9-9V3h10l7.59 7.59a2 2 0 0 1 0 2.82Z"/>
           <path d="M7 7h.01"/>
@@ -401,35 +495,61 @@
         PRICE
       </h2>
 
-      <div class="price-list">
-        <div class="price-item">
-          <div class="price-left">
-            <span class="price-icon">
+      <div class="list">
+        <a class="item" href="/chat/?item=script">
+          <div class="left">
+            <span class="mini">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m8 9-4 3 4 3"/>
                 <path d="m16 9 4 3-4 3"/>
                 <path d="m14 5-4 14"/>
               </svg>
             </span>
-            <span class="price-name">Luau Script</span>
+            <span class="item-name">Luau Script</span>
           </div>
-          <span class="price-cost">2$</span>
-        </div>
+          <span class="cost">$2</span>
+        </a>
 
-        <div class="price-item">
-          <div class="price-left">
-            <span class="price-icon">
+        <a class="item" href="/chat/?item=support">
+          <div class="left">
+            <span class="mini">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
-                <path d="m4.5 4.5 15 15"/>
+                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
               </svg>
             </span>
-            <span class="price-name">War Tycoon Ban</span>
+            <span class="item-name">Support</span>
           </div>
-          <span class="price-cost">1.5$</span>
-        </div>
+          <span class="cost">$1.5</span>
+        </a>
       </div>
     </section>
   </main>
+
+  <script>
+    const authText = document.getElementById("authText");
+    const authBtn = document.getElementById("authBtn");
+
+    async function loadAuth() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!res.ok) throw new Error("auth");
+        const data = await res.json();
+        authText.textContent = `Logged in as ${data.user.username}`;
+        authBtn.textContent = "Logout";
+        authBtn.href = "#";
+        authBtn.onclick = async e => {
+          e.preventDefault();
+          await fetch("/api/auth/logout", { method: "POST" });
+          location.reload();
+        };
+      } catch {
+        authText.textContent = "Anonymous until Discord login";
+        authBtn.textContent = "Login";
+        authBtn.href = `/api/auth/login?next=${encodeURIComponent(location.pathname)}`;
+      }
+    }
+
+    loadAuth();
+  </script>
 </body>
 </html>
