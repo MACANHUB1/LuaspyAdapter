@@ -41,7 +41,6 @@ function b64uDecode(str) {
 function randomToken(size = 32) {
   const arr = new Uint8Array(size);
   crypto.getRandomValues(arr);
-
   let s = "";
 
   for (const b of arr) {
@@ -59,9 +58,11 @@ function safeNext(value) {
 
 function cleanItem(value) {
   const item = String(value || "key").toLowerCase();
+
   if (item === "key") return "key";
   if (item === "script") return "script";
   if (item === "support") return "support";
+
   return "key";
 }
 
@@ -75,13 +76,11 @@ async function getUser(req, env) {
 
   if (!row) return null;
 
-  const adminId = env.ADMIN_DISCORD_ID || "1474054511130841234";
-
   return {
     id: row.id,
     username: row.username,
     avatar: row.avatar,
-    is_admin: row.id === adminId
+    is_admin: row.id === (env.ADMIN_DISCORD_ID || "1474054511130841234")
   };
 }
 
@@ -178,7 +177,6 @@ async function authCallback(req, env) {
 
 async function authMe(req, env) {
   const user = await getUser(req, env);
-  if (!user) return json({ user: null }, 401);
   return json({ user });
 }
 
