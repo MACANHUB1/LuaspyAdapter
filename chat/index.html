@@ -20,11 +20,11 @@
         linear-gradient(rgba(24, 96, 59, 0.35) 1px, transparent 1px),
         linear-gradient(90deg, rgba(24, 96, 59, 0.35) 1px, transparent 1px);
       background-size: 42px 42px;
-      animation: gridMove 9s linear infinite;
+      animation: grid 9s linear infinite;
       padding: 24px;
     }
 
-    @keyframes gridMove {
+    @keyframes grid {
       from {
         background-position: 0 0, 0 0;
       }
@@ -185,6 +185,7 @@
       font-size: 14px;
       border: 1px solid rgba(116, 255, 177, 0.12);
       background: rgba(6, 36, 22, 0.7);
+      overflow-wrap: anywhere;
     }
 
     .msg.me {
@@ -241,6 +242,8 @@
     }
 
     .login-wrap {
+      position: relative;
+      z-index: 1;
       min-height: calc(100vh - 48px);
       width: min(100%, 440px);
       margin: 0 auto;
@@ -303,8 +306,8 @@
 <body>
   <div id="login" class="login-wrap hidden">
     <section class="login-card">
-      <h1>Discord Login</h1>
-      <p>Login with Discord to write directly to the admin. No email is requested.</p>
+      <h1>Login</h1>
+      <p>Sign in with Discord to continue.</p>
       <a id="loginBtn" class="login" href="#">Login with Discord</a>
     </section>
   </div>
@@ -340,6 +343,7 @@
     const qs = new URLSearchParams(location.search);
     const allowed = ["key", "script", "support"];
     let item = allowed.includes(qs.get("item")) ? qs.get("item") : "key";
+    let plan = qs.get("plan") || "";
     let me = null;
     let activeUser = null;
     let poll = null;
@@ -361,6 +365,12 @@
       if (v === "script") return "Luau Script";
       if (v === "support") return "Support";
       return "Key";
+    }
+
+    function planTitle(v) {
+      if (v === "30d") return "30 Days";
+      if (v === "lifetime") return "Lifetime";
+      return "";
     }
 
     async function req(url, options = {}) {
@@ -390,6 +400,7 @@
     async function loadMe() {
       try {
         const data = await req("/api/auth/me");
+        if (!data.user) return false;
         me = data.user;
         return true;
       } catch {
@@ -414,6 +425,7 @@
         btn.onclick = () => {
           activeUser = t.user_id;
           item = t.item;
+          plan = "";
           loadMessages();
           loadThreads();
         };
@@ -423,6 +435,7 @@
       if (!activeUser && data.threads[0]) {
         activeUser = data.threads[0].user_id;
         item = data.threads[0].item;
+        plan = "";
         await loadMessages();
         await loadThreads();
       }
@@ -441,7 +454,8 @@
         messagesEl.appendChild(div);
       }
 
-      chatTitle.textContent = itemTitle(item);
+      const pt = planTitle(plan);
+      chatTitle.textContent = pt ? `${itemTitle(item)} · ${pt}` : itemTitle(item);
       chatSub.textContent = me.is_admin ? `User: ${activeUser || me.id}` : "Chat with admin";
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
