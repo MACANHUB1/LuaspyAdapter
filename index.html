@@ -240,18 +240,6 @@
       color: rgba(210, 255, 224, 0.9);
     }
 
-    .privacy {
-      width: 100%;
-      margin-bottom: 18px;
-      padding: 12px 14px;
-      border: 1px solid rgba(116, 255, 177, 0.12);
-      border-radius: 16px;
-      background: rgba(6, 36, 22, 0.55);
-      color: rgba(210, 255, 224, 0.76);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
     .actions {
       width: 100%;
       display: flex;
@@ -450,16 +438,14 @@
 
   <main class="wrap">
     <section class="auth panel">
-      <div class="auth-user" id="authText">Checking login...</div>
-      <a class="auth-btn" id="authBtn" href="/api/auth/login?next=/">Login</a>
+      <div class="auth-user" id="authText">Loading...</div>
+      <a class="auth-btn" id="authBtn" href="/api/auth/login?next=/">Login with Discord</a>
     </section>
 
     <section class="card">
       <img class="avatar" src="1.png" alt="Олег Борзый">
       <h1 class="name">Олег Борзый</h1>
       <p class="tag">@lua.spy</p>
-
-      <div class="privacy">Discord login only. No password, no email request, no public profile data except Discord username.</div>
 
       <div class="actions">
         <a class="btn" href="https://discord.gg/wqxnnNfjZ5" target="_blank" rel="noopener noreferrer">
@@ -532,8 +518,10 @@
     async function loadAuth() {
       try {
         const res = await fetch("/api/auth/me", { cache: "no-store" });
-        if (!res.ok) throw new Error("auth");
         const data = await res.json();
+
+        if (!data.user) throw new Error("login");
+
         authText.textContent = `Logged in as ${data.user.username}`;
         authBtn.textContent = "Logout";
         authBtn.href = "#";
@@ -543,8 +531,8 @@
           location.reload();
         };
       } catch {
-        authText.textContent = "Anonymous until Discord login";
-        authBtn.textContent = "Login";
+        authText.textContent = "Not logged in";
+        authBtn.textContent = "Login with Discord";
         authBtn.href = `/api/auth/login?next=${encodeURIComponent(location.pathname)}`;
       }
     }
