@@ -528,6 +528,7 @@
         authText.textContent = `Logged in as ${data.user.username}`;
         authBtn.textContent = "Logout";
         authBtn.href = "#";
+
         authBtn.onclick = async e => {
           e.preventDefault();
           await fetch("/api/auth/logout", { method: "POST" });
