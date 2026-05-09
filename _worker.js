@@ -66,6 +66,36 @@ function cleanItem(value) {
   return "key";
 }
 
+function cleanPlan(value) {
+  const plan = String(value || "").toLowerCase();
+
+  if (plan === "30d") return "30d";
+  if (plan === "lifetime") return "lifetime";
+
+  return "";
+}
+
+function makeThread(item, plan) {
+  const clean = cleanItem(item);
+  const p = cleanPlan(plan);
+
+  if (clean === "key" && p) return `${clean}:${p}`;
+
+  return clean;
+}
+
+function parseThread(thread) {
+  const value = String(thread || "key").toLowerCase();
+
+  if (value === "key:30d") return { item: "key", plan: "30d", title: "Key · 30 Days" };
+  if (value === "key:lifetime") return { item: "key", plan: "lifetime", title: "Key · Lifetime" };
+  if (value === "script") return { item: "script", plan: "", title: "Luau Script" };
+  if (value === "ban") return { item: "ban", plan: "", title: "War Tycoon Ban" };
+  if (value === "key") return { item: "key", plan: "", title: "Key" };
+
+  return { item: "key", plan: "", title: "Key" };
+}
+
 async function getUser(req, env) {
   const token = getCookie(req, "session");
   if (!token) return null;
@@ -200,14 +230,24 @@ async function chatMessagesGet(req, env) {
   if (!user) return json({ error: "not_logged_in" }, 401);
 
   const url = new URL(req.url);
-  const item = cleanItem(url.searchParams.get("item"));
-  const targetUser = user.is_admin ? String(url.searchParams.get("user_id") || user.id) : user.id;
+  const thread = user.is_admin && url.searchParams.get("thread")
+    ? String(url.searchParams.get("thread"))
+    : makeThread(url.searchParams.get("item"), url.searchParams.get("plan"));
+
+  const targetUser = user.is_admin ? String(url.searchParams.get("user_id") || "") : user.id;
+
+  if (user.is_admin && !targetUser) return json({ error: "missing_user_id" }, 400);
 
   const { results } = await env.DB.prepare(
-    "SELECT id, user_id, item, body, from_admin, created_at FROM messages WHERE user_id = ? AND item = ? ORDER BY id ASC LIMIT 200"
-  ).bind(targetUser, item).all();
+    "SELECT id, user_id, item, body, from_admin, created_at FROM messages WHERE user_id = ? AND item = ? ORDER BY id ASC LIMIT 300"
+  ).bind(targetUser, thread).all();
 
-  return json({ messages: results, user });
+  return json({
+    messages: results,
+    thread,
+    meta: parseThread(thread),
+    user
+  });
 }
 
 async function chatMessagesPost(req, env) {
@@ -222,7 +262,10 @@ async function chatMessagesPost(req, env) {
     return json({ error: "bad_json" }, 400);
   }
 
-  const item = cleanItem(data.item);
+  const thread = user.is_admin && data.thread
+    ? String(data.thread)
+    : makeThread(data.item, data.plan);
+
   const body = String(data.body || "").trim().slice(0, 800);
   const targetUser = user.is_admin ? String(data.user_id || "") : user.id;
 
@@ -231,9 +274,9 @@ async function chatMessagesPost(req, env) {
 
   await env.DB.prepare(
     "INSERT INTO messages (user_id, item, body, from_admin, created_at) VALUES (?, ?, ?, ?, ?)"
-  ).bind(targetUser, item, body, user.is_admin ? 1 : 0, new Date().toISOString()).run();
+  ).bind(targetUser, thread, body, user.is_admin ? 1 : 0, new Date().toISOString()).run();
 
-  return json({ ok: true });
+  return json({ ok: true, thread, meta: parseThread(thread) });
 }
 
 async function chatThreads(req, env) {
@@ -245,7 +288,12 @@ async function chatThreads(req, env) {
     "SELECT m.user_id, m.item, u.username, u.avatar, MAX(m.created_at) AS updated_at, (SELECT body FROM messages x WHERE x.user_id = m.user_id AND x.item = m.item ORDER BY x.id DESC LIMIT 1) AS last_body FROM messages m LEFT JOIN users u ON u.id = m.user_id GROUP BY m.user_id, m.item ORDER BY MAX(m.id) DESC LIMIT 100"
   ).all();
 
-  return json({ threads: results });
+  const threads = results.map(t => ({
+    ...t,
+    meta: parseThread(t.item)
+  }));
+
+  return json({ threads });
 }
 
 export default {
