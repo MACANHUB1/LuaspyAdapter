@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Олег Борзый</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #eaffea;
+      background-color: #03140d;
+      background-image:
+        linear-gradient(rgba(24, 96, 59, 0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(24, 96, 59, 0.35) 1px, transparent 1px);
+      background-size: 42px 42px;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at center, rgba(33, 150, 89, 0.16), transparent 45%),
+        radial-gradient(circle at bottom, rgba(8, 66, 39, 0.5), transparent 55%);
+      pointer-events: none;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: min(92vw, 390px);
+      padding: 38px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      border: 1px solid rgba(88, 255, 159, 0.18);
+      border-radius: 28px;
+      background: rgba(3, 23, 14, 0.62);
+      box-shadow:
+        0 0 45px rgba(25, 145, 82, 0.18),
+        inset 0 0 25px rgba(44, 255, 142, 0.04);
+      backdrop-filter: blur(14px);
+    }
+
+    .avatar {
+      width: 142px;
+      height: 142px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(116, 255, 177, 0.65);
+      box-shadow:
+        0 0 32px rgba(72, 255, 148, 0.34),
+        0 0 0 10px rgba(50, 255, 136, 0.05);
+      margin-bottom: 24px;
+    }
+
+    .name {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      margin-bottom: 8px;
+      text-shadow: 0 0 18px rgba(111, 255, 172, 0.28);
+    }
+
+    .tag {
+      font-size: 17px;
+      color: rgba(210, 255, 224, 0.68);
+      margin-bottom: 28px;
+    }
+
+    .btn {
+      width: 100%;
+      max-width: 240px;
+      min-height: 54px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      color: #04110b;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #6dff9c, #20c76a);
+      box-shadow:
+        0 12px 28px rgba(32, 199, 106, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+      filter: brightness(1.08);
+      box-shadow:
+        0 16px 36px rgba(32, 199, 106, 0.38),
+        inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn img {
+      width: 23px;
+      height: 23px;
+      filter: brightness(0);
+    }
+
+    @media (max-width: 420px) {
+      .card {
+        padding: 32px 22px;
+        border-radius: 24px;
+      }
+
+      .avatar {
+        width: 124px;
+        height: 124px;
+      }
+
+      .name {
+        font-size: 26px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <img class="avatar" src="1.png" alt="Олег Борзый">
+    <h1 class="name">Олег Борзый</h1>
+    <p class="tag">@lua.spy</p>
+    <a class="btn" href="https://discord.gg/wqxnnNfjZ5" target="_blank" rel="noopener noreferrer">
+      <img src="https://cdn.simpleicons.org/discord/000000" alt="">
+      <span>M5WARE</span>
+    </a>
+  </main>
+</body>
+</html>
