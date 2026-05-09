@@ -47,15 +47,15 @@
     .app {
       position: relative;
       z-index: 1;
-      width: min(100%, 1080px);
+      width: min(100%, 1120px);
       margin: 0 auto;
       display: grid;
-      grid-template-columns: 330px 1fr;
+      grid-template-columns: 340px 1fr;
       gap: 18px;
     }
 
     .app.single {
-      width: min(100%, 760px);
+      width: min(100%, 780px);
       grid-template-columns: 1fr;
     }
 
@@ -164,8 +164,16 @@
       color: #6dff9c;
     }
 
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
     .logout,
-    .back {
+    .back,
+    .danger {
       border: 1px solid rgba(116, 255, 177, 0.18);
       border-radius: 14px;
       background: rgba(6, 36, 22, 0.6);
@@ -177,17 +185,23 @@
       transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease;
     }
 
+    .danger {
+      color: #ffd8d8;
+      border-color: rgba(255, 93, 93, 0.28);
+      background: rgba(64, 15, 15, 0.5);
+    }
+
     .logout:hover,
-    .back:hover {
+    .back:hover,
+    .danger:hover {
       transform: translateY(-2px);
       border-color: rgba(109, 255, 156, 0.5);
       background: rgba(10, 52, 31, 0.86);
     }
 
-    .top-actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
+    .danger:hover {
+      border-color: rgba(255, 93, 93, 0.62);
+      background: rgba(90, 18, 18, 0.76);
     }
 
     .messages {
@@ -198,11 +212,26 @@
       gap: 12px;
       overflow: auto;
       max-height: calc(100vh - 178px);
-      min-height: 420px;
+      min-height: 440px;
+    }
+
+    .msg-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      max-width: 78%;
+    }
+
+    .msg-row.me {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .msg-row.admin {
+      align-self: flex-start;
     }
 
     .msg {
-      max-width: 75%;
       padding: 12px 14px;
       border-radius: 16px;
       line-height: 1.4;
@@ -213,15 +242,29 @@
       white-space: pre-wrap;
     }
 
-    .msg.me {
-      align-self: flex-end;
+    .msg-row.me .msg {
       color: #04110b;
       background: linear-gradient(135deg, #6dff9c, #20c76a);
     }
 
-    .msg.admin {
-      align-self: flex-start;
+    .msg-row.admin .msg {
       background: rgba(10, 52, 31, 0.86);
+    }
+
+    .del-msg {
+      width: 30px;
+      height: 30px;
+      border: 1px solid rgba(255, 93, 93, 0.32);
+      border-radius: 10px;
+      color: #ffd8d8;
+      background: rgba(64, 15, 15, 0.58);
+      cursor: pointer;
+      font-weight: 900;
+      flex: 0 0 30px;
+    }
+
+    .del-msg:hover {
+      background: rgba(100, 20, 20, 0.9);
     }
 
     .empty {
@@ -347,8 +390,8 @@
         min-height: 360px;
       }
 
-      .msg {
-        max-width: 88%;
+      .msg-row {
+        max-width: 92%;
       }
 
       .chat-top,
@@ -363,6 +406,7 @@
 
       .logout,
       .back,
+      .danger,
       .send {
         width: 100%;
       }
@@ -386,7 +430,7 @@
   <main id="app" class="app hidden">
     <aside id="side" class="panel side">
       <div class="head">
-        <div class="title">Threads</div>
+        <div class="title">Chats</div>
         <div class="sub" id="userLabel"></div>
       </div>
       <div id="threads" class="threads"></div>
@@ -399,6 +443,7 @@
           <div id="chatSub" class="sub"></div>
         </div>
         <div class="top-actions">
+          <button id="deleteChat" class="danger hidden">Delete Chat</button>
           <a class="back" href="/">Back</a>
           <button id="logout" class="logout">Logout</button>
         </div>
@@ -417,15 +462,15 @@
     const qs = new URLSearchParams(location.search);
     const mode = qs.get("mode") || "";
     const isAnon = mode === "anonymous";
-    const allowed = ["key", "script", "ban"];
-    let item = allowed.includes(qs.get("item")) ? qs.get("item") : "key";
+    const allowed = ["chat", "key", "script", "ban"];
+    let item = allowed.includes(qs.get("item")) ? qs.get("item") : "chat";
     let plan = qs.get("plan") || "";
     let me = null;
     let activeUsername = "";
     let activeThread = "";
+    let messagesSource = null;
+    let threadsSource = null;
     let lastPayload = "";
-    let messageBusy = false;
-    let threadBusy = false;
 
     const login = document.getElementById("login");
     const app = document.getElementById("app");
@@ -440,9 +485,11 @@
     const input = document.getElementById("input");
     const send = document.getElementById("send");
     const logout = document.getElementById("logout");
+    const deleteChat = document.getElementById("deleteChat");
 
     const icons = {
       anonymous: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>`,
+      chat: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 10h8"/><path d="M8 14h6"/></svg>`,
       key: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2"/><path d="M15.5 7.5l3 3"/><path d="M11.4 11.4a5 5 0 1 1-2.8-2.8"/><path d="M13 9l8-8"/></svg>`,
       script: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 9-4 3 4 3"/><path d="m16 9 4 3-4 3"/><path d="m14 5-4 14"/></svg>`,
       ban: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.7 5.7 18.3 18.3"/></svg>`
@@ -456,11 +503,13 @@
 
     function metaFromThread(v) {
       if (v === "anonymous") return { item: "anonymous", title: "Anonymous Message" };
+      if (v === "chat") return { item: "chat", title: "Chat" };
       if (v === "key:30d") return { item: "key", title: "Key · 30 Days" };
       if (v === "key:lifetime") return { item: "key", title: "Key · Lifetime" };
+      if (v === "key") return { item: "key", title: "Key" };
       if (v === "script") return { item: "script", title: "Luau Script" };
       if (v === "ban") return { item: "ban", title: "War Tycoon Ban" };
-      return { item: "key", title: "Key" };
+      return { item: "chat", title: "Chat" };
     }
 
     async function req(url, options = {}) {
@@ -507,7 +556,7 @@
     }
 
     function renderTitle(meta, sub) {
-      chatTitle.innerHTML = `${icons[meta.item] || icons.key}<span>${meta.title}</span>`;
+      chatTitle.innerHTML = `${icons[meta.item] || icons.chat}<span>${meta.title}</span>`;
       chatSub.textContent = sub || "";
     }
 
@@ -520,7 +569,7 @@
     }
 
     function atBottom() {
-      return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 90;
+      return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 120;
     }
 
     function renderMessages(messages, force = false) {
@@ -528,7 +577,7 @@
 
       if (!force && payload === lastPayload) return;
 
-      const shouldStick = atBottom() || force || !lastPayload;
+      const stick = atBottom() || force || !lastPayload;
 
       lastPayload = payload;
       messagesEl.innerHTML = "";
@@ -539,20 +588,80 @@
       }
 
       for (const m of messages) {
-        const div = document.createElement("div");
+        const row = document.createElement("div");
+        const bubble = document.createElement("div");
         const own = isAnon
           ? Number(m.from_admin) === 0
           : me && me.is_admin
             ? Number(m.from_admin) === 1
             : Number(m.from_admin) === 0;
 
-        div.className = `msg ${own ? "me" : "admin"}`;
-        div.textContent = m.body;
-        messagesEl.appendChild(div);
+        row.className = `msg-row ${own ? "me" : "admin"}`;
+        bubble.className = "msg";
+        bubble.textContent = m.body;
+        row.appendChild(bubble);
+
+        if (me && me.is_admin) {
+          const del = document.createElement("button");
+          del.className = "del-msg";
+          del.textContent = "×";
+          del.onclick = async () => {
+            await deleteMessage(m.id);
+          };
+          row.appendChild(del);
+        }
+
+        messagesEl.appendChild(row);
       }
 
-      if (shouldStick) {
+      if (stick) {
         messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+    }
+
+    function renderThreads(threads) {
+      threadsEl.innerHTML = "";
+
+      if (!threads.length) {
+        activeUsername = "";
+        activeThread = "";
+        threadsEl.innerHTML = `<div class="sub">No chats yet.</div>`;
+        renderTitle({ item: "chat", title: "Admin Chat" }, "Waiting for messages");
+        renderEmpty("No chats yet.");
+        setFormEnabled(false, "");
+        deleteChat.classList.add("hidden");
+        return;
+      }
+
+      const exists = threads.some(t => t.username === activeUsername && t.thread === activeThread);
+
+      if (!activeUsername || !activeThread || !exists) {
+        activeUsername = threads[0].username;
+        activeThread = threads[0].thread;
+        lastPayload = "";
+        openMessagesStream(true);
+      }
+
+      for (const t of threads) {
+        const meta = t.meta || metaFromThread(t.thread);
+        const btn = document.createElement("button");
+        btn.className = "thread";
+
+        if (activeUsername === t.username && activeThread === t.thread) {
+          btn.classList.add("active");
+        }
+
+        btn.innerHTML = `<strong>${t.display || t.username} · ${meta.title}</strong><span>${t.last_body || ""}</span>`;
+
+        btn.onclick = () => {
+          activeUsername = t.username;
+          activeThread = t.thread;
+          lastPayload = "";
+          renderThreads(threads);
+          openMessagesStream(true);
+        };
+
+        threadsEl.appendChild(btn);
       }
     }
 
@@ -567,107 +676,87 @@
       }
     }
 
-    async function loadAnonMessages(force = false) {
-      if (messageBusy) return;
-      messageBusy = true;
-
-      try {
-        const data = await req("/api/anon/messages");
-        renderTitle(data.meta || metaFromThread("anonymous"), "Live anonymous chat");
-        renderMessages(data.messages || [], force);
-        setFormEnabled(true, "Write anonymous message...");
-      } finally {
-        messageBusy = false;
+    function closeMessagesStream() {
+      if (messagesSource) {
+        messagesSource.close();
+        messagesSource = null;
       }
     }
 
-    async function loadMessages(force = false) {
-      if (messageBusy) return;
-      messageBusy = true;
+    function closeThreadsStream() {
+      if (threadsSource) {
+        threadsSource.close();
+        threadsSource = null;
+      }
+    }
 
-      try {
-        if (me && me.is_admin) {
-          if (!activeUsername || !activeThread) {
-            renderTitle({ item: "anonymous", title: "Select Chat" }, "Admin mode");
-            renderEmpty("Select a chat on the left.");
-            setFormEnabled(false, "");
-            return;
-          }
+    function openMessagesStream(force = false) {
+      closeMessagesStream();
 
-          const data = await req(`/api/chat/messages?username=${encodeURIComponent(activeUsername)}&thread=${encodeURIComponent(activeThread)}`);
-          const meta = data.meta || metaFromThread(activeThread);
+      let url = "";
 
-          renderTitle(meta, activeThread === "anonymous" ? "Anonymous user" : `User: ${activeUsername}`);
-          renderMessages(data.messages || [], force);
-          setFormEnabled(true, "Write reply...");
+      if (isAnon) {
+        url = "/api/live/messages?mode=anonymous";
+      } else if (me && me.is_admin) {
+        if (!activeUsername || !activeThread) {
+          renderTitle({ item: "chat", title: "Select Chat" }, "Admin mode");
+          renderEmpty("Select a chat on the left.");
+          setFormEnabled(false, "");
+          deleteChat.classList.add("hidden");
           return;
         }
 
+        url = `/api/live/messages?username=${encodeURIComponent(activeUsername)}&thread=${encodeURIComponent(activeThread)}`;
+      } else {
         activeUsername = me.username;
         activeThread = makeThread(item, plan);
-
-        const data = await req(`/api/chat/messages?item=${encodeURIComponent(item)}&plan=${encodeURIComponent(plan)}`);
-
-        renderTitle(data.meta || metaFromThread(activeThread), "Live chat with admin");
-        renderMessages(data.messages || [], force);
-        setFormEnabled(true, "Write message...");
-      } finally {
-        messageBusy = false;
+        url = `/api/live/messages?item=${encodeURIComponent(item)}&plan=${encodeURIComponent(plan)}`;
       }
+
+      messagesSource = new EventSource(url);
+
+      messagesSource.onmessage = e => {
+        const data = JSON.parse(e.data);
+        const meta = data.meta || metaFromThread(activeThread);
+
+        if (isAnon) {
+          renderTitle(meta, "Live anonymous chat");
+          setFormEnabled(true, "Write anonymous message...");
+          deleteChat.classList.add("hidden");
+        } else if (me && me.is_admin) {
+          renderTitle(meta, activeThread === "anonymous" ? "Anonymous user" : `User: ${activeUsername}`);
+          setFormEnabled(true, "Write reply...");
+          deleteChat.classList.remove("hidden");
+        } else {
+          renderTitle(meta, "Live chat with admin");
+          setFormEnabled(true, "Write message...");
+          deleteChat.classList.add("hidden");
+        }
+
+        renderMessages(data.messages || [], force);
+        force = false;
+      };
+
+      messagesSource.onerror = () => {
+        closeMessagesStream();
+        setTimeout(() => openMessagesStream(false), 900);
+      };
     }
 
-    async function loadThreads(keepSelection = true) {
-      if (threadBusy) return;
-      threadBusy = true;
+    function openThreadsStream() {
+      closeThreadsStream();
 
-      try {
-        const data = await req("/api/chat/threads");
-        const threads = data.threads || [];
+      threadsSource = new EventSource("/api/live/threads");
 
-        threadsEl.innerHTML = "";
+      threadsSource.onmessage = e => {
+        const data = JSON.parse(e.data);
+        renderThreads(data.threads || []);
+      };
 
-        if (!threads.length) {
-          activeUsername = "";
-          activeThread = "";
-          threadsEl.innerHTML = `<div class="sub">No messages yet.</div>`;
-          renderTitle({ item: "anonymous", title: "Admin Chat" }, "Waiting for messages");
-          renderEmpty("No chats yet.");
-          setFormEnabled(false, "");
-          return;
-        }
-
-        const exists = threads.some(t => t.username === activeUsername && t.thread === activeThread);
-
-        if (!keepSelection || !activeUsername || !activeThread || !exists) {
-          activeUsername = threads[0].username;
-          activeThread = threads[0].thread;
-          lastPayload = "";
-        }
-
-        for (const t of threads) {
-          const meta = t.meta || metaFromThread(t.thread);
-          const btn = document.createElement("button");
-          btn.className = "thread";
-
-          if (activeUsername === t.username && activeThread === t.thread) {
-            btn.classList.add("active");
-          }
-
-          btn.innerHTML = `<strong>${t.display || t.username} · ${meta.title}</strong><span>${t.last_body || ""}</span>`;
-
-          btn.onclick = async () => {
-            activeUsername = t.username;
-            activeThread = t.thread;
-            lastPayload = "";
-            await loadThreads(true);
-            await loadMessages(true);
-          };
-
-          threadsEl.appendChild(btn);
-        }
-      } finally {
-        threadBusy = false;
-      }
+      threadsSource.onerror = () => {
+        closeThreadsStream();
+        setTimeout(openThreadsStream, 900);
+      };
     }
 
     async function sendMessage(body) {
@@ -675,13 +764,13 @@
 
       try {
         if (isAnon) {
-          await req("/api/anon/messages", {
+          await req("/api/messages?mode=anonymous", {
             method: "POST",
-            body: JSON.stringify({ body })
+            body: JSON.stringify({
+              mode: "anonymous",
+              body
+            })
           });
-
-          lastPayload = "";
-          await loadAnonMessages(true);
           return;
         }
 
@@ -692,7 +781,7 @@
             return;
           }
 
-          await req("/api/chat/messages", {
+          await req("/api/messages", {
             method: "POST",
             body: JSON.stringify({
               username: activeUsername,
@@ -700,14 +789,10 @@
               body
             })
           });
-
-          lastPayload = "";
-          await loadThreads(true);
-          await loadMessages(true);
           return;
         }
 
-        await req("/api/chat/messages", {
+        await req("/api/messages", {
           method: "POST",
           body: JSON.stringify({
             item,
@@ -715,12 +800,41 @@
             body
           })
         });
-
-        lastPayload = "";
-        await loadMessages(true);
       } finally {
         send.disabled = false;
       }
+    }
+
+    async function deleteMessage(id) {
+      if (!me || !me.is_admin) return;
+
+      await req(`/api/message?id=${encodeURIComponent(id)}`, {
+        method: "DELETE"
+      });
+
+      openMessagesStream(true);
+    }
+
+    async function deleteActiveChat() {
+      if (!me || !me.is_admin || !activeUsername || !activeThread) return;
+
+      const ok = confirm("Delete this chat?");
+
+      if (!ok) return;
+
+      await req(`/api/thread?username=${encodeURIComponent(activeUsername)}&thread=${encodeURIComponent(activeThread)}`, {
+        method: "DELETE"
+      });
+
+      activeUsername = "";
+      activeThread = "";
+      lastPayload = "";
+      openThreadsStream();
+      closeMessagesStream();
+      renderTitle({ item: "chat", title: "Admin Chat" }, "Chat deleted");
+      renderEmpty("Select another chat.");
+      setFormEnabled(false, "");
+      deleteChat.classList.add("hidden");
     }
 
     form.addEventListener("submit", async e => {
@@ -739,28 +853,19 @@
       }
     });
 
+    deleteChat.onclick = deleteActiveChat;
+
     logout.onclick = async () => {
       await fetch("/api/auth/logout", { method: "POST" });
       location.href = "/";
     };
 
-    function loop(fn, delay) {
-      async function tick() {
-        try {
-          await fn();
-        } catch {}
-        setTimeout(tick, delay);
-      }
-
-      setTimeout(tick, delay);
-    }
-
     async function init() {
       if (isAnon) {
         showApp(true);
         logout.style.display = "none";
-        await loadAnonMessages(true);
-        loop(() => loadAnonMessages(false), 1000);
+        setFormEnabled(true, "Write anonymous message...");
+        openMessagesStream(true);
         return;
       }
 
@@ -775,23 +880,20 @@
 
       if (me.is_admin) {
         showApp(false);
-        await loadThreads(false);
-        await loadMessages(true);
-
-        loop(async () => {
-          await loadThreads(true);
-          await loadMessages(false);
-        }, 1000);
-
+        openThreadsStream();
         return;
       }
 
       showApp(true);
       activeUsername = me.username;
       activeThread = makeThread(item, plan);
-      await loadMessages(true);
-      loop(() => loadMessages(false), 1000);
+      openMessagesStream(true);
     }
+
+    window.addEventListener("beforeunload", () => {
+      closeMessagesStream();
+      closeThreadsStream();
+    });
 
     init();
   </script>
