@@ -1,1 +1,508 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Chat</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
+    body {
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #eaffea;
+      background-color: #03140d;
+      background-image:
+        linear-gradient(rgba(24, 96, 59, 0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(24, 96, 59, 0.35) 1px, transparent 1px);
+      background-size: 42px 42px;
+      animation: gridMove 9s linear infinite;
+      padding: 24px;
+    }
+
+    @keyframes gridMove {
+      from {
+        background-position: 0 0, 0 0;
+      }
+
+      to {
+        background-position: 42px 42px, 42px 42px;
+      }
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at center, rgba(33, 150, 89, 0.16), transparent 45%),
+        radial-gradient(circle at bottom, rgba(8, 66, 39, 0.5), transparent 55%);
+      pointer-events: none;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 980px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid rgba(88, 255, 159, 0.18);
+      border-radius: 28px;
+      background: rgba(3, 23, 14, 0.62);
+      box-shadow:
+        0 0 45px rgba(25, 145, 82, 0.18),
+        inset 0 0 25px rgba(44, 255, 142, 0.04);
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+    }
+
+    .side {
+      min-height: calc(100vh - 48px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .head {
+      padding: 20px;
+      border-bottom: 1px solid rgba(116, 255, 177, 0.12);
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .sub {
+      color: rgba(210, 255, 224, 0.68);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .threads {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px;
+      overflow: auto;
+    }
+
+    .thread {
+      width: 100%;
+      text-align: left;
+      border: 1px solid rgba(116, 255, 177, 0.12);
+      border-radius: 16px;
+      padding: 12px;
+      color: #eaffea;
+      background: rgba(6, 36, 22, 0.56);
+      cursor: pointer;
+      transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+    }
+
+    .thread:hover,
+    .thread.active {
+      transform: translateY(-2px);
+      border-color: rgba(109, 255, 156, 0.45);
+      background: rgba(10, 52, 31, 0.8);
+    }
+
+    .thread strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .thread span {
+      display: block;
+      color: rgba(210, 255, 224, 0.62);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chat {
+      min-height: calc(100vh - 48px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-top {
+      padding: 20px;
+      border-bottom: 1px solid rgba(116, 255, 177, 0.12);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-title {
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .logout {
+      border: 1px solid rgba(116, 255, 177, 0.18);
+      border-radius: 14px;
+      background: rgba(6, 36, 22, 0.6);
+      color: rgba(234, 255, 234, 0.84);
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+    }
+
+    .logout:hover {
+      transform: translateY(-2px);
+      border-color: rgba(109, 255, 156, 0.5);
+      background: rgba(10, 52, 31, 0.86);
+    }
+
+    .messages {
+      flex: 1;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: auto;
+      max-height: calc(100vh - 178px);
+    }
+
+    .msg {
+      max-width: 75%;
+      padding: 12px 14px;
+      border-radius: 16px;
+      line-height: 1.4;
+      font-size: 14px;
+      border: 1px solid rgba(116, 255, 177, 0.12);
+      background: rgba(6, 36, 22, 0.7);
+    }
+
+    .msg.me {
+      align-self: flex-end;
+      color: #04110b;
+      background: linear-gradient(135deg, #6dff9c, #20c76a);
+    }
+
+    .msg.admin {
+      align-self: flex-start;
+      background: rgba(10, 52, 31, 0.86);
+    }
+
+    .form {
+      padding: 18px;
+      display: flex;
+      gap: 12px;
+      border-top: 1px solid rgba(116, 255, 177, 0.12);
+    }
+
+    .input {
+      flex: 1;
+      min-height: 48px;
+      border: 1px solid rgba(116, 255, 177, 0.18);
+      border-radius: 16px;
+      outline: none;
+      padding: 0 14px;
+      color: #eaffea;
+      background: rgba(6, 36, 22, 0.7);
+      font-size: 15px;
+    }
+
+    .send,
+    .login {
+      min-height: 48px;
+      border: none;
+      border-radius: 16px;
+      padding: 0 18px;
+      color: #04110b;
+      background: linear-gradient(135deg, #6dff9c, #20c76a);
+      font-weight: 900;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.22s ease, filter 0.22s ease;
+    }
+
+    .send:hover,
+    .login:hover {
+      transform: translateY(-3px) scale(1.03);
+      filter: brightness(1.1);
+    }
+
+    .login-wrap {
+      min-height: calc(100vh - 48px);
+      width: min(100%, 440px);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-card {
+      width: 100%;
+      padding: 30px;
+      text-align: center;
+      border: 1px solid rgba(88, 255, 159, 0.18);
+      border-radius: 28px;
+      background: rgba(3, 23, 14, 0.62);
+      box-shadow:
+        0 0 45px rgba(25, 145, 82, 0.18),
+        inset 0 0 25px rgba(44, 255, 142, 0.04);
+      backdrop-filter: blur(14px);
+    }
+
+    .login-card h1 {
+      font-size: 30px;
+      margin-bottom: 10px;
+    }
+
+    .login-card p {
+      color: rgba(210, 255, 224, 0.72);
+      line-height: 1.5;
+      margin-bottom: 22px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        min-height: auto;
+      }
+
+      .chat {
+        min-height: 70vh;
+      }
+
+      .messages {
+        max-height: 55vh;
+      }
+
+      .msg {
+        max-width: 88%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="login" class="login-wrap hidden">
+    <section class="login-card">
+      <h1>Discord Login</h1>
+      <p>Login with Discord to write directly to the admin. No email is requested.</p>
+      <a id="loginBtn" class="login" href="#">Login with Discord</a>
+    </section>
+  </div>
+
+  <main id="app" class="app hidden">
+    <aside id="side" class="panel side">
+      <div class="head">
+        <div class="title">Threads</div>
+        <div class="sub" id="userLabel"></div>
+      </div>
+      <div id="threads" class="threads"></div>
+    </aside>
+
+    <section class="panel chat">
+      <div class="chat-top">
+        <div>
+          <div id="chatTitle" class="chat-title">Chat</div>
+          <div id="chatSub" class="sub"></div>
+        </div>
+        <button id="logout" class="logout">Logout</button>
+      </div>
+
+      <div id="messages" class="messages"></div>
+
+      <form id="form" class="form">
+        <input id="input" class="input" maxlength="800" placeholder="Write message..." autocomplete="off">
+        <button class="send" type="submit">Send</button>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const qs = new URLSearchParams(location.search);
+    const allowed = ["key", "script", "support"];
+    let item = allowed.includes(qs.get("item")) ? qs.get("item") : "key";
+    let me = null;
+    let activeUser = null;
+    let poll = null;
+
+    const login = document.getElementById("login");
+    const app = document.getElementById("app");
+    const side = document.getElementById("side");
+    const loginBtn = document.getElementById("loginBtn");
+    const userLabel = document.getElementById("userLabel");
+    const threadsEl = document.getElementById("threads");
+    const messagesEl = document.getElementById("messages");
+    const chatTitle = document.getElementById("chatTitle");
+    const chatSub = document.getElementById("chatSub");
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+
+    function itemTitle(v) {
+      if (v === "key") return "Key";
+      if (v === "script") return "Luau Script";
+      if (v === "support") return "Support";
+      return "Key";
+    }
+
+    async function req(url, options = {}) {
+      const res = await fetch(url, {
+        ...options,
+        headers: {
+          "content-type": "application/json",
+          ...(options.headers || {})
+        }
+      });
+
+      if (!res.ok) throw new Error(String(res.status));
+      return res.json();
+    }
+
+    function showLogin() {
+      login.classList.remove("hidden");
+      app.classList.add("hidden");
+      loginBtn.href = `/api/auth/login?next=${encodeURIComponent(location.pathname + location.search)}`;
+    }
+
+    function showApp() {
+      login.classList.add("hidden");
+      app.classList.remove("hidden");
+    }
+
+    async function loadMe() {
+      try {
+        const data = await req("/api/auth/me");
+        me = data.user;
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    async function loadThreads() {
+      const data = await req("/api/chat/threads");
+      threadsEl.innerHTML = "";
+
+      if (!data.threads.length) {
+        threadsEl.innerHTML = `<div class="sub">No messages yet.</div>`;
+        return;
+      }
+
+      for (const t of data.threads) {
+        const btn = document.createElement("button");
+        btn.className = "thread";
+        if (activeUser === t.user_id && item === t.item) btn.classList.add("active");
+        btn.innerHTML = `<strong>${t.username || t.user_id} · ${itemTitle(t.item)}</strong><span>${t.last_body || ""}</span>`;
+        btn.onclick = () => {
+          activeUser = t.user_id;
+          item = t.item;
+          loadMessages();
+          loadThreads();
+        };
+        threadsEl.appendChild(btn);
+      }
+
+      if (!activeUser && data.threads[0]) {
+        activeUser = data.threads[0].user_id;
+        item = data.threads[0].item;
+        await loadMessages();
+        await loadThreads();
+      }
+    }
+
+    async function loadMessages() {
+      const userParam = me.is_admin ? `&user_id=${encodeURIComponent(activeUser || me.id)}` : "";
+      const data = await req(`/api/chat/messages?item=${encodeURIComponent(item)}${userParam}`);
+      messagesEl.innerHTML = "";
+
+      for (const m of data.messages) {
+        const div = document.createElement("div");
+        const own = me.is_admin ? m.from_admin : !m.from_admin;
+        div.className = `msg ${own ? "me" : "admin"}`;
+        div.textContent = m.body;
+        messagesEl.appendChild(div);
+      }
+
+      chatTitle.textContent = itemTitle(item);
+      chatSub.textContent = me.is_admin ? `User: ${activeUser || me.id}` : "Chat with admin";
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function sendMessage(body) {
+      await req("/api/chat/messages", {
+        method: "POST",
+        body: JSON.stringify({
+          item,
+          body,
+          user_id: activeUser
+        })
+      });
+
+      await loadMessages();
+      if (me.is_admin) await loadThreads();
+    }
+
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+
+      const body = input.value.trim();
+      if (!body) return;
+
+      input.value = "";
+      await sendMessage(body);
+    });
+
+    document.getElementById("logout").onclick = async () => {
+      await fetch("/api/auth/logout", { method: "POST" });
+      location.href = "/";
+    };
+
+    async function init() {
+      const ok = await loadMe();
+
+      if (!ok) {
+        showLogin();
+        return;
+      }
+
+      showApp();
+      userLabel.textContent = `${me.username}${me.is_admin ? " · admin" : ""}`;
+
+      if (!me.is_admin) {
+        side.classList.add("hidden");
+        activeUser = me.id;
+        await loadMessages();
+        poll = setInterval(loadMessages, 2500);
+        return;
+      }
+
+      side.classList.remove("hidden");
+      await loadThreads();
+      poll = setInterval(async () => {
+        await loadThreads();
+        if (activeUser) await loadMessages();
+      }, 2500);
+    }
+
+    init();
+  </script>
+</body>
+</html>
