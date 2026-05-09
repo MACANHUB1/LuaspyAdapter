@@ -56,6 +56,10 @@ function safeNext(value) {
   return value;
 }
 
+function cleanUsername(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function cleanItem(value) {
   const item = String(value || "key").toLowerCase();
 
@@ -91,7 +95,6 @@ function parseThread(thread) {
   if (value === "key:lifetime") return { item: "key", plan: "lifetime", title: "Key · Lifetime" };
   if (value === "script") return { item: "script", plan: "", title: "Luau Script" };
   if (value === "ban") return { item: "ban", plan: "", title: "War Tycoon Ban" };
-  if (value === "key") return { item: "key", plan: "", title: "Key" };
 
   return { item: "key", plan: "", title: "Key" };
 }
@@ -101,16 +104,18 @@ async function getUser(req, env) {
   if (!token) return null;
 
   const row = await env.DB.prepare(
-    "SELECT users.id, users.username, users.avatar FROM sessions JOIN users ON users.id = sessions.user_id WHERE sessions.token = ?"
+    "SELECT users.username, users.avatar FROM sessions JOIN users ON users.username = sessions.username WHERE sessions.token = ?"
   ).bind(token).first();
 
   if (!row) return null;
 
+  const username = cleanUsername(row.username);
+  const admin = cleanUsername(env.ADMIN_USERNAME || "lua.spy");
+
   return {
-    id: row.id,
-    username: row.username,
-    avatar: row.avatar,
-    is_admin: row.id === (env.ADMIN_DISCORD_ID || "1474054511130841234")
+    username,
+    avatar: row.avatar || "",
+    is_admin: username === admin
   };
 }
 
@@ -185,17 +190,21 @@ async function authCallback(req, env) {
   if (!userRes.ok) return json({ error: "discord_user_failed" }, 401);
 
   const user = await userRes.json();
+  const username = cleanUsername(user.username);
+
+  if (!username) return json({ error: "discord_username_missing" }, 401);
+
   const now = new Date().toISOString();
 
   await env.DB.prepare(
-    "INSERT INTO users (id, username, avatar, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET username = excluded.username, avatar = excluded.avatar, updated_at = excluded.updated_at"
-  ).bind(user.id, user.username, user.avatar || "", now).run();
+    "INSERT INTO users (username, avatar, updated_at) VALUES (?, ?, ?) ON CONFLICT(username) DO UPDATE SET avatar = excluded.avatar, updated_at = excluded.updated_at"
+  ).bind(username, user.avatar || "", now).run();
 
   const session = randomToken(32);
 
   await env.DB.prepare(
-    "INSERT INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)"
-  ).bind(session, user.id, now).run();
+    "INSERT INTO sessions (token, username, created_at) VALUES (?, ?, ?)"
+  ).bind(session, username, now).run();
 
   const headers = new Headers();
   headers.set("location", safeNext(state.n));
@@ -230,17 +239,20 @@ async function chatMessagesGet(req, env) {
   if (!user) return json({ error: "not_logged_in" }, 401);
 
   const url = new URL(req.url);
+
   const thread = user.is_admin && url.searchParams.get("thread")
     ? String(url.searchParams.get("thread"))
     : makeThread(url.searchParams.get("item"), url.searchParams.get("plan"));
 
-  const targetUser = user.is_admin ? String(url.searchParams.get("user_id") || "") : user.id;
+  const targetUsername = user.is_admin
+    ? cleanUsername(url.searchParams.get("username"))
+    : user.username;
 
-  if (user.is_admin && !targetUser) return json({ error: "missing_user_id" }, 400);
+  if (user.is_admin && !targetUsername) return json({ error: "missing_username" }, 400);
 
   const { results } = await env.DB.prepare(
-    "SELECT id, user_id, item, body, from_admin, created_at FROM messages WHERE user_id = ? AND item = ? ORDER BY id ASC LIMIT 300"
-  ).bind(targetUser, thread).all();
+    "SELECT id, username, thread, body, from_admin, created_at FROM messages WHERE username = ? AND thread = ? ORDER BY id ASC LIMIT 300"
+  ).bind(targetUsername, thread).all();
 
   return json({
     messages: results,
@@ -267,14 +279,16 @@ async function chatMessagesPost(req, env) {
     : makeThread(data.item, data.plan);
 
   const body = String(data.body || "").trim().slice(0, 800);
-  const targetUser = user.is_admin ? String(data.user_id || "") : user.id;
+  const targetUsername = user.is_admin
+    ? cleanUsername(data.username)
+    : user.username;
 
   if (!body) return json({ error: "empty_message" }, 400);
-  if (user.is_admin && !targetUser) return json({ error: "missing_user_id" }, 400);
+  if (user.is_admin && !targetUsername) return json({ error: "missing_username" }, 400);
 
   await env.DB.prepare(
-    "INSERT INTO messages (user_id, item, body, from_admin, created_at) VALUES (?, ?, ?, ?, ?)"
-  ).bind(targetUser, thread, body, user.is_admin ? 1 : 0, new Date().toISOString()).run();
+    "INSERT INTO messages (username, thread, body, from_admin, created_at) VALUES (?, ?, ?, ?, ?)"
+  ).bind(targetUsername, thread, body, user.is_admin ? 1 : 0, new Date().toISOString()).run();
 
   return json({ ok: true, thread, meta: parseThread(thread) });
 }
@@ -285,12 +299,12 @@ async function chatThreads(req, env) {
   if (!user.is_admin) return json({ error: "admin_only" }, 403);
 
   const { results } = await env.DB.prepare(
-    "SELECT m.user_id, m.item, u.username, u.avatar, MAX(m.created_at) AS updated_at, (SELECT body FROM messages x WHERE x.user_id = m.user_id AND x.item = m.item ORDER BY x.id DESC LIMIT 1) AS last_body FROM messages m LEFT JOIN users u ON u.id = m.user_id GROUP BY m.user_id, m.item ORDER BY MAX(m.id) DESC LIMIT 100"
+    "SELECT m.username, m.thread, u.avatar, MAX(m.created_at) AS updated_at, (SELECT body FROM messages x WHERE x.username = m.username AND x.thread = m.thread ORDER BY x.id DESC LIMIT 1) AS last_body FROM messages m LEFT JOIN users u ON u.username = m.username GROUP BY m.username, m.thread ORDER BY MAX(m.id) DESC LIMIT 100"
   ).all();
 
   const threads = results.map(t => ({
     ...t,
-    meta: parseThread(t.item)
+    meta: parseThread(t.thread)
   }));
 
   return json({ threads });
